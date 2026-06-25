@@ -1,0 +1,69 @@
+//! Kinesin runtime — the `kinesin` binary.
+//!
+//! `kinesin run ui.py` registers the app via a one-shot Python pass, then serves it,
+//! owning sessions, the job queue, disposable Python workers, and result previews.
+
+mod actions;
+mod cli;
+mod config;
+mod jobs;
+mod preview;
+mod registry;
+mod server;
+mod session;
+mod state;
+mod websocket;
+mod worker;
+
+use std::sync::Arc;
+
+use tracing::error;
+use tracing_subscriber::EnvFilter;
+
+use crate::cli::{Command, RunArgs};
+use crate::config::Config;
+use crate::state::AppState;
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("kinesin_runtime=info,info")),
+        )
+        .init();
+
+    let command = match cli::parse() {
+        Ok(c) => c,
+        Err(msg) => {
+            eprintln!("{msg}");
+            std::process::exit(2);
+        }
+    };
+
+    let result = match command {
+        Command::Run(args) => run(args).await,
+    };
+
+    if let Err(e) = result {
+        error!("{e:#}");
+        eprintln!("error: {e:#}");
+        std::process::exit(1);
+    }
+}
+
+async fn run(args: RunArgs) -> anyhow::Result<()> {
+    let config = Arc::new(Config::load(args.config, args.port)?);
+    config.ensure_dirs()?;
+
+    let spec = registry::register(&config, &args.ui_path).await?;
+    tracing::info!(
+        "loaded '{}' ({} nodes, {} jobs)",
+        spec.title,
+        spec.nodes.len(),
+        spec.jobs.len()
+    );
+
+    let state = Arc::new(AppState::new(config, spec));
+    server::serve(state).await
+}

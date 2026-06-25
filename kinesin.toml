@@ -1,0 +1,23 @@
+# Kinesin runtime configuration.
+# All values shown here are the built-in defaults; override as needed.
+
+[server]
+host = "127.0.0.1"
+port = 8000
+
+[workers]
+# Maximum number of Python worker processes running jobs concurrently. This also
+# bounds how many shards a parallel (shardable) job fans out into.
+# 0 = auto (use all CPU cores, like the original tpp_solver's mp.Pool(cpu_count())).
+max_workers = 0
+
+[jobs]
+# Hard ceiling on a single job's wall-clock runtime; the worker is killed past this.
+max_runtime_seconds = 3600
+# Reject new submissions once this many jobs are queued/running.
+max_queue_size = 100
+
+[storage]
+upload_dir = "storage/uploads"
+result_dir = "storage/results"
+cache_dir = "storage/cache"

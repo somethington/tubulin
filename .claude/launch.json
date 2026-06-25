@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kinesin",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": [
+        "run",
+        "-p",
+        "kinesin-runtime",
+        "--",
+        "run",
+        "examples/csv_analysis/ui.py"
+      ],
+      "autoPort": true,
+      "port": 8137
+    },
+    {
+      "name": "tpp",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": [
+        "run",
+        "-p",
+        "kinesin-runtime",
+        "--",
+        "run",
+        "examples/tpp/ui.py"
+      ],
+      "autoPort": true,
+      "port": 8140
+    }
+  ]
+}

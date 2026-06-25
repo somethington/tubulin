@@ -1,0 +1,25 @@
+[project]
+name = "kinesin"
+version = "0.1.0"
+description = "Python-first scientific application framework powered by a Rust runtime"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "polars>=0.20",
+    "pyarrow>=14",
+    "pydantic>=2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/kinesin"]
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = ["pytest>=8"]
