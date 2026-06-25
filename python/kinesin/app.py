@@ -151,12 +151,12 @@ class App:
         return {"type": "set_text", "target": target.id, "value": value}
 
     # -- jobs --------------------------------------------------------------
-    def job(self, func=None, *, shardable: bool = False):
+    def job(self, func=None, *, parallel: bool = False, shardable: bool = False):
         """Decorator registering a job; returns a :class:`JobHandle`.
 
-        Use ``@app.job`` or ``@app.job(shardable=True)``. A shardable job may be run
-        by the runtime as several parallel worker processes — each receives its
-        ``job.shard`` / ``job.num_shards`` and handles a slice of the work.
+        Use ``@app.job`` or ``@app.job(parallel=True)``. A parallel job is run by the
+        runtime as several worker processes; use ``job.map(...)`` / ``job.primary(...)``
+        to fan work out and write single-copy outputs without touching shard indices.
         """
 
         def register(fn):
@@ -164,7 +164,7 @@ class App:
             self._jobs[handle.name] = {
                 "module_file": handle.module_file,
                 "qualname": handle.name,
-                "shardable": bool(shardable),
+                "shardable": bool(parallel or shardable),
             }
             self._job_funcs[handle.name] = fn
             return handle

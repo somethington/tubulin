@@ -632,6 +632,18 @@ def _plot_replicate_curve(protein, data_dict, params):
     return fig
 
 
+def plot_one(protein, replicate_data, params, kind="averaged"):
+    """Return one protein's melting-curve figure (or None) — the per-item function
+    for ``job.map``. ``kind`` is "averaged" (one sigmoid per treatment) or
+    "replicate" (one per replicate)."""
+    sliced = _slice_replicate_data(replicate_data, protein)
+    if kind == "replicate":
+        return _plot_replicate_curve(protein, sliced, params)
+    return _plot_averaged_curve(
+        protein, sliced, params["ref_temp"], params["normalize"], params["r2_threshold"]
+    )
+
+
 def generate_curves(
     replicate_data, params, out_dir, kind="averaged", progress_cb=None, limit=0,
     shard=0, num_shards=1,

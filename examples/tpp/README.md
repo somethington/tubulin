@@ -81,6 +81,36 @@ The download `.zip` mirrors the Streamlit app's bundle: `data/statistics.csv`,
 `replicate_summary.csv`, `averaged_summary.csv`, `normality.csv`, overview SVGs, and
 **every per-protein curve** under `figures/curves/`.
 
+### The parallel primitive (`job.map` / `job.primary`)
+
+A parallel job declares `@app.job(parallel=True)` and uses two verbs — it never
+touches shard indices, slicing, or merge plumbing:
+
+```python
+@app.job(parallel=True)
+def tpp_analyze(..., job):
+    rd, params = tpp.preprocess_only(...)               # cheap, every shard
+    proteins = sorted(rd_proteins)
+
+    job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "averaged"),
+            into="avg_curves")        # fanned across workers, figures auto-saved + merged
+    job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "replicate"),
+            into="rep_curves")
+
+    @job.primary                      # runs ONCE, on shard 0
+    def _summary():
+        full = tpp.run(...)           # the expensive fit, not duplicated per shard
+        job.result(stats_parquet)
+        job.output("volcano", volcano_json)
+        job.bundle(files={...}, dirs={"figures/averaged": "avg_curves"})
+```
+
+`job.map(items, fn, into=)` runs only this worker's slice `items[shard::num_shards]`
+(the runtime runs the rest in parallel), auto-saves a returned matplotlib figure as
+`<item>.svg`, registers `into` as a gallery, and streams progress. `job.primary(fn)`
+runs once. The framework handles fan-out, the lean memory model, dir-merge, and the
+on-demand bundle. The TPP job dropped from ~180 lines to ~90 with no loss of speed.
+
 ### Runtime-managed parallelism
 
 The job is declared `@app.job(shardable=True)`. On submit, the **runtime decides how

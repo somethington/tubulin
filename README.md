@@ -55,7 +55,19 @@ Python layer (registration pass + disposable workers)
 storage/{uploads,results,cache}
 ```
 
-See [docs/architecture.md](docs/architecture.md) and [docs/mvp.md](docs/mvp.md).
+## Documentation
+
+Full docs are in [`docs/`](docs/README.md):
+
+- [architecture.md](docs/architecture.md) — the whole system, lifecycles, memory model, route map, limitations
+- [python-api.md](docs/python-api.md) — `App`, widgets, jobs, the `JobContext` primitives
+- [parallelism.md](docs/parallelism.md) — parallel jobs, `job.map`/`job.primary`, and the multi-tenant gaps
+- [protocol.md](docs/protocol.md) — the wire formats and HTTP routes
+- [runtime-internals.md](docs/runtime-internals.md) — the Rust runtime, module by module
+- [configuration.md](docs/configuration.md) — `kinesin.toml` and env vars
+
+A real adapted app (Thermal Proteome Profiling, with parallel plotting of hundreds of
+curves) lives in [examples/tpp](examples/tpp/README.md).
 
 ## Developing
 
@@ -73,5 +85,8 @@ uv sync
 cargo run -p kinesin-runtime -- run examples/csv_analysis/ui.py
 ```
 
-This is an MVP. It is intentionally small; it is meant to be architecturally correct,
-not feature-complete. See [docs/mvp.md](docs/mvp.md) for what is and isn't in scope.
+This is a working prototype: it runs one user's app well on one machine. It is
+**single-tenant** — the fairness, isolation, and durability a multi-user server needs
+are documented as known gaps in
+[architecture.md](docs/architecture.md#limitations--what-this-is-not-yet). See
+[docs/mvp.md](docs/mvp.md) for the original scope.
