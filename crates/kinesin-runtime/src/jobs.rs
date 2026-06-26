@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use kinesin_protocol::{JobDef, JobStatus, ServerMessage, WorkerMessage};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
@@ -390,16 +390,32 @@ fn send_download(sink: &JobSink, node_id: &str, job_id: &str) {
 }
 
 /// Preview a parquet file into a table widget (or mark it missing).
+///
+/// Prefers a `<path>.preview.json` sidecar the worker may have pre-computed (no
+/// subprocess); otherwise falls back to running `kinesin.preview`.
 async fn send_table(config: &Config, sink: &JobSink, node_id: &str, path: Option<&str>) {
     let props = match path {
         None => json!({ "ready": true, "missing": true }),
-        Some(path) => match run_preview(config, path).await {
-            Ok(mut preview) => {
-                preview.insert("ready".into(), Value::Bool(true));
-                Value::Object(preview)
+        Some(path) => {
+            let sidecar = format!("{path}.preview.json");
+            if let Ok(text) = tokio::fs::read_to_string(&sidecar).await {
+                match serde_json::from_str::<Map<String, Value>>(&text) {
+                    Ok(mut m) => {
+                        m.insert("ready".into(), Value::Bool(true));
+                        Value::Object(m)
+                    }
+                    Err(e) => json!({ "ready": true, "error": format!("bad preview: {e}") }),
+                }
+            } else {
+                match run_preview(config, path).await {
+                    Ok(mut preview) => {
+                        preview.insert("ready".into(), Value::Bool(true));
+                        Value::Object(preview)
+                    }
+                    Err(e) => json!({ "ready": true, "error": e }),
+                }
             }
-            Err(e) => json!({ "ready": true, "error": e }),
-        },
+        }
     };
     sink.send_to(node_id, props);
 }

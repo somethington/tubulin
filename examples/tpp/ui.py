@@ -71,6 +71,8 @@ app.table_preview(job.result_path)  # Mann-Whitney + FDR stats table (per-replic
 app.plot(job, "volcano", caption="Volcano plot — ΔTm vs -log10(FDR)")
 app.plot(job, "violin", caption="Violin plot — melting points by treatment")
 app.plot(job, "distribution", caption="Distribution of melting points")
+# The per-protein curves are rendered to SVG for the download zip regardless, so the
+# gallery (which just lists those files) is essentially free — no extra analysis time.
 app.gallery(job, "avg_curves", caption="Averaged melting curves — one sigmoid per treatment")
 app.gallery(job, "rep_curves", caption="Per-replicate melting curves — one sigmoid per replicate")
 app.result_table(job, "averaged", caption="Averaged data — one fit to mean-of-replicate intensities")

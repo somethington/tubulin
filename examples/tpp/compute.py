@@ -14,7 +14,7 @@ import tpp_pipeline as tpp
 
 
 def _pq(path, df):
-    df.to_parquet(path, index=False)
+    df.write_parquet(path)
     return path
 
 
@@ -40,21 +40,24 @@ def tpp_analyze(
     if int(max_curves) > 0:
         proteins = proteins[: int(max_curves)]
 
-    # Fan the curves out across the runtime's workers — sharded + merged automatically.
+    # Fan the curves out across the runtime's workers — but NOT shard 0, which is busy
+    # with the analysis below; this overlaps the two instead of piling on shard 0.
     if show_curves:
         job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "averaged"),
-                into="avg_curves", progress=(0, 50))
+                into="avg_curves", progress=(0, 50), skip_primary=True)
         job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "replicate"),
-                into="rep_curves", progress=(50, 100))
+                into="rep_curves", progress=(50, 100), skip_primary=True)
 
-    # Expensive single-copy outputs (stats + summaries): once, on shard 0.
+    # Expensive single-copy outputs (stats + summaries): once, on shard 0, in parallel
+    # with the other shards rendering curves.
     @job.primary
     def _summary():
-        job.log(f"Shard 0 runs the analysis ({job.num_shards} workers plotting)")
+        job.log(f"Shard 0 runs the analysis; shards 1-{max(job.num_shards - 1, 1)} render curves")
         full = tpp.run(
             tsv_path, meta_path, mode="kinesin", normalize=bool(normalize),
             selected_temp=sel, r2_threshold=float(r2_threshold), seed=int(seed), log_cb=job.log,
         )
+        job.progress(60)
         stats = full["stats_df"]
         treatments = [full["metrics"]["control"], full["metrics"]["treatment"]]
         base = f"{job.result_dir}/{job.id}"
@@ -69,23 +72,24 @@ def tpp_analyze(
             job.output("distribution", _txt(f"{base}_dist.json",
                                             tpp.plotly_distribution(full["summary_table"])))
         avg_table = tpp.averaged_summary(rd, params)
-        job.output("averaged", _pq(f"{base}_averaged.parquet", avg_table))
+        job.table("averaged", _pq(f"{base}_averaged.parquet", avg_table))
         norm = tpp.normality_table(full["averaged_table"]) if show_normality else None
-        if norm is not None and not norm.empty:
-            job.output("normality", _pq(f"{base}_normality.parquet", norm))
+        if norm is not None and not norm.is_empty():
+            job.table("normality", _pq(f"{base}_normality.parquet", norm))
 
         # Download bundle: CSV summaries + overview SVGs + every shard's curves.
         files = {
-            "data/statistics.csv": _txt(f"{base}_b_stats.csv", stats.to_csv(index=False)),
-            "data/replicate_summary.csv": _txt(f"{base}_b_rep.csv", full["replicate_table"].to_csv(index=False)),
-            "data/averaged_summary.csv": _txt(f"{base}_b_avg.csv", avg_table.to_csv(index=False)),
+            "data/statistics.csv": _txt(f"{base}_b_stats.csv", stats.write_csv()),
+            "data/replicate_summary.csv": _txt(f"{base}_b_rep.csv", full["replicate_table"].write_csv()),
+            "data/averaged_summary.csv": _txt(f"{base}_b_avg.csv", avg_table.write_csv()),
             "figures/volcano.svg": _txt(f"{base}_b_volcano.svg", tpp.plot_volcano(stats)),
             "figures/violin.svg": _txt(f"{base}_b_violin.svg", tpp.plot_violin(full["averaged_table"], treatments)),
             "figures/distribution.svg": _txt(f"{base}_b_dist.svg", tpp.plot_distribution(full["summary_table"])),
         }
-        if norm is not None and not norm.empty:
-            files["data/normality.csv"] = _txt(f"{base}_b_norm.csv", norm.to_csv(index=False))
+        if norm is not None and not norm.is_empty():
+            files["data/normality.csv"] = _txt(f"{base}_b_norm.csv", norm.write_csv())
         job.bundle(files=files, dirs={"figures/averaged": "avg_curves", "figures/replicates": "rep_curves"})
 
         m = full["metrics"]
         job.log(f"{m['proteins_fit']} proteins fit, {m['significant']} significant (FDR<0.05)")
+        job.progress(100)

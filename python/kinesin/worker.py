@@ -69,16 +69,58 @@ class JobContext:
         return fn() if self.is_primary else None
 
     def result(self, path: str) -> str:
-        """Register the job's primary result file (bound to ``table_preview``)."""
+        """Register the job's primary result table (bound to ``table_preview``).
+
+        Pre-computes a 100-row preview sidecar so the runtime serves it without
+        spawning a preview subprocess.
+        """
         self._result_path = path
+        self._write_preview(path)
         return path
 
     def output(self, name: str, path: str) -> str:
-        """Register a named output artifact for a bound widget (`image`/`table`/…)."""
+        """Register a named output artifact for a bound widget (`image`/`plot`/…)."""
         self._outputs[name] = path
         return path
 
-    def map(self, items, fn, into: str, progress=(0, 100)) -> int:
+    def table(self, name: str, path: str) -> str:
+        """Register a named **table** output (bound to ``result_table``) and
+        pre-compute its 100-row preview sidecar — no preview subprocess needed."""
+        self._outputs[name] = path
+        self._write_preview(path)
+        return path
+
+    def _write_preview(self, path: str) -> None:
+        """Write ``<path>.preview.json`` ({columns, rows, total_rows, truncated})."""
+        try:
+            import polars as pl
+
+            df = pl.read_parquet(path)
+        except Exception:
+            return  # not a parquet the worker can read; runtime will fall back
+        import json
+        import math
+
+        def safe(v):
+            if isinstance(v, float) and math.isnan(v):
+                return None
+            try:
+                json.dumps(v)
+                return v
+            except (TypeError, ValueError):
+                return str(v)
+
+        head = df.head(100)
+        sidecar = {
+            "columns": head.columns,
+            "rows": [[safe(v) for v in row] for row in head.iter_rows()],
+            "total_rows": df.height,
+            "truncated": df.height > 100,
+        }
+        with open(path + ".preview.json", "w") as fh:
+            json.dump(sidecar, fh)
+
+    def map(self, items, fn, into: str, progress=(0, 100), skip_primary: bool = False) -> int:
         """Fan ``fn`` over ``items``, **sharded across the runtime's workers**.
 
         This worker processes only its slice ``items[shard::num_shards]`` — the
@@ -87,21 +129,30 @@ class JobContext:
         files and return ``None``. All shards write into the directory bound to
         output ``into``; the runtime builds the gallery by listing it. Streams
         progress over the given range.
+
+        ``skip_primary=True`` excludes shard 0 from the work (and splits ``items``
+        across the remaining shards) — use it when shard 0 is busy with single-copy
+        analysis in ``primary()``, so the map overlaps it instead of piling on.
         """
         out_dir = os.path.join(self.result_dir, f"{self.id}_{into}")
         os.makedirs(out_dir, exist_ok=True)
         self._outputs[into] = out_dir
-        mine = items[self.shard :: self.num_shards]
+        if skip_primary and self.num_shards > 1:
+            if self.is_primary:
+                return 0
+            mine = items[(self.shard - 1) :: (self.num_shards - 1)]
+        else:
+            mine = items[self.shard :: self.num_shards]
         total = len(mine)
         lo, hi = progress
         for i, item in enumerate(mine):
             artifact = fn(item)
             if artifact is not None and hasattr(artifact, "savefig"):
-                artifact.savefig(
-                    os.path.join(out_dir, f"{_safe(item)}.svg"),
-                    format="svg",
-                    bbox_inches="tight",
-                )
+                # Save as laid out — no bbox_inches="tight", which forces a second
+                # render pass per figure (~13ms/curve here). Figures with artists
+                # outside the axes (e.g. an external legend) should reserve space
+                # themselves (subplots_adjust) before being returned.
+                artifact.savefig(os.path.join(out_dir, f"{_safe(item)}.svg"), format="svg")
                 import matplotlib.pyplot as plt
 
                 plt.close(artifact)
@@ -125,6 +176,26 @@ class JobContext:
         with open(manifest, "w") as fh:
             json.dump({"entries": entries}, fh)
         return manifest
+
+
+def execute_job(func, args, ctx: "JobContext"):
+    """Call a job function with a :class:`JobContext` and collect its outputs.
+
+    Returns ``(result_path, outputs)``. Shared by the worker subprocess (below) and
+    the in-process test harness (:mod:`kinesin.testing`) so both exercise the exact
+    same output-collection semantics.
+    """
+    sig = inspect.signature(func)
+    if "job" in sig.parameters:
+        result = func(*args, job=ctx)
+    else:
+        result = func(*args)
+    path = ctx._result_path
+    outputs = dict(ctx._outputs)
+    if isinstance(result, dict):
+        path = result.get("result_path") or result.get("path") or path
+        outputs.update(result.get("outputs") or {})
+    return path, outputs
 
 
 def _load_function(module_file: str, qualname: str):
@@ -168,18 +239,8 @@ def main() -> None:
     try:
         func = _load_function(descriptor["module_file"], descriptor["qualname"])
         ctx = JobContext(job_id, result_dir, shard, num_shards)
-        sig = inspect.signature(func)
-        if "job" in sig.parameters:
-            result = func(*args, job=ctx)
-        else:
-            result = func(*args)
-
         # Outputs may be registered via the job.* helpers and/or returned as a dict.
-        path = ctx._result_path
-        outputs = dict(ctx._outputs)
-        if isinstance(result, dict):
-            path = result.get("result_path") or result.get("path") or path
-            outputs.update(result.get("outputs") or {})
+        path, outputs = execute_job(func, args, ctx)
         protocol.completed(path, outputs)
     except Exception:
         protocol.failed(traceback.format_exc())
