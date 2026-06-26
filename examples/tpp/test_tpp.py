@@ -15,7 +15,7 @@ def test_tpp_produces_expected_outputs():
     r = run_app(UI, inputs={"Imputation seed": 42, "number_2": 8})
 
     # Primary result + named tables exist and are non-empty.
-    assert r.result_path and r.result_path.endswith("_stats.parquet")
+    assert r.result_path and r.result_path.endswith(".parquet")
     stats = r.table()
     assert {"Protein", "ΔTm", "P-value", "FDR"} <= set(stats.columns)
     assert stats.height > 0

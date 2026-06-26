@@ -36,15 +36,18 @@ the runtime's parallel wall-clock (use the real runtime for that number).
 > singleton (`app_def.py`), so re-importing `ui.py` duplicated every widget/action.
 > `load_app` now evicts the app's own modules to construct a fresh app each run.
 
-## 2. Dataframe-native job outputs — small effort, high payoff
+## 2. Dataframe-native job outputs — ✅ done
 
-**Pain:** `compute.py` is full of `_pq(path, df)` / `_txt(path, s)` helpers and manual
-`f"{base}_averaged.parquet"` pathing; the author manages `result_dir`, parquet
+**Pain:** `compute.py` was full of `_pq(path, df)` / `_txt(path, s)` helpers and manual
+`f"{base}_averaged.parquet"` pathing; the author managed `result_dir`, parquet
 writing, and preview sidecars by hand.
 
-**Add:** `job.table(name, df)`, `job.result(df)`, `job.write_csv(name, df)` that take a
-**dataframe** and own the path + format + preview sidecar in one call. (`job.table`
-already exists but still takes a pre-written path.)
+**Shipped:** `job.result(df)` and `job.table(name, df)` accept a **dataframe** (polars
+or pandas) — the framework writes the parquet under `result_dir` and the preview
+sidecar in one call (a path still works too). Plus `job.write_csv(name, df)`,
+`job.write_text(name, content)`, and `job.path(name)` own result-dir pathing for
+bundle files. TPP's `compute.py` dropped both `_pq` and `_txt` and the manual `base`
+pathing. Verified end-to-end via the #1 harness (`examples/tpp/test_tpp.py`).
 
 ## 3. Performance-safe plotting defaults — small effort, high payoff
 
