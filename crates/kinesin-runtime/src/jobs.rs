@@ -13,6 +13,7 @@ use tracing::{info, warn};
 
 use crate::config::Config;
 use crate::preview::run_preview;
+use crate::forkserver::ForkServerManager;
 use crate::worker::run_worker;
 
 /// Where a job's updates go: the session's outbound channel plus the widgets bound
@@ -64,16 +65,19 @@ pub struct JobManager {
     sem: Arc<Semaphore>,
     active: Arc<AtomicUsize>,
     records: Arc<Mutex<HashMap<String, JobRecord>>>,
+    forkservers: Arc<ForkServerManager>,
 }
 
 impl JobManager {
     pub fn new(config: Arc<Config>) -> Self {
         let permits = config.max_workers;
+        let forkservers = Arc::new(ForkServerManager::new(config.clone()));
         Self {
             config,
             sem: Arc::new(Semaphore::new(permits)),
             active: Arc::new(AtomicUsize::new(0)),
             records: Arc::new(Mutex::new(HashMap::new())),
+            forkservers,
         }
     }
 
@@ -105,13 +109,14 @@ impl JobManager {
         let sem = self.sem.clone();
         let active = self.active.clone();
         let records = self.records.clone();
+        let forkservers = self.forkservers.clone();
         let shardable = req.job_def.shardable;
 
         tokio::spawn(async move {
             if shardable {
-                run_sharded_job(config, sem, records, req).await;
+                run_sharded_job(config, forkservers, sem, records, req).await;
             } else {
-                run_job(config, sem, records, req).await;
+                run_job(config, forkservers, sem, records, req).await;
             }
             active.fetch_sub(1, Ordering::SeqCst);
         });
@@ -131,6 +136,7 @@ fn decide_shards(config: &Config) -> usize {
 
 async fn run_job(
     config: Arc<Config>,
+    forkservers: Arc<ForkServerManager>,
     sem: Arc<Semaphore>,
     records: Arc<Mutex<HashMap<String, JobRecord>>>,
     req: JobRequest,
@@ -162,7 +168,7 @@ async fn run_job(
     let mut outputs: HashMap<String, String> = HashMap::new();
     let mut failure: Option<String> = None;
 
-    run_worker(&config, &job_id, &job_def, &args, 0, 1, |msg| match msg {
+    run_worker(&config, &forkservers, &job_id, &job_def, &args, 0, 1, |msg| match msg {
         WorkerMessage::Log { message } => {
             logs.push(message);
             sink.status(json!({ "logs": logs.clone() }));
@@ -240,6 +246,7 @@ async fn finish_job(
 /// (curves from every shard land in the shared output dirs).
 async fn run_sharded_job(
     config: Arc<Config>,
+    forkservers: Arc<ForkServerManager>,
     sem: Arc<Semaphore>,
     records: Arc<Mutex<HashMap<String, JobRecord>>>,
     req: JobRequest,
@@ -272,6 +279,7 @@ async fn run_sharded_job(
     let mut handles = Vec::with_capacity(shards);
     for shard in 0..shards {
         let config = config.clone();
+        let forkservers = forkservers.clone();
         let sem = sem.clone();
         let sink = sink.clone();
         let job_id = job_id.clone();
@@ -288,7 +296,7 @@ async fn run_sharded_job(
             let mut result_path = None;
             let mut outputs = HashMap::new();
             let mut failure = None;
-            run_worker(&config, &job_id, &job_def, &args, shard, shards, |msg| match msg {
+            run_worker(&config, &forkservers, &job_id, &job_def, &args, shard, shards, |msg| match msg {
                 WorkerMessage::Progress { progress: p } => {
                     let avg = {
                         let mut g = progress.lock().unwrap();

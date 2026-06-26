@@ -6,6 +6,7 @@
 mod actions;
 mod cli;
 mod config;
+mod forkserver;
 mod jobs;
 mod preview;
 mod registry;

@@ -245,7 +245,9 @@ def execute_job(func, args, ctx: "JobContext"):
     return path, outputs
 
 
-def _load_function(module_file: str, qualname: str):
+def import_user_module(module_file: str):
+    """Import the file where a job is defined (the heavy import). Split out from
+    resolution so the fork-server can do this **once** in the resident parent."""
     module_file = os.path.abspath(module_file)
     directory = os.path.dirname(module_file)
     if directory not in sys.path:
@@ -256,7 +258,11 @@ def _load_function(module_file: str, qualname: str):
         raise RuntimeError(f"cannot import {module_file}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    return module
 
+
+def resolve_function(module, qualname: str):
+    """Find a job function on an already-imported module (or the active app registry)."""
     obj = getattr(module, qualname, None)
     if obj is None:
         # Fall back to the active app's registry (handles the ui.py/compute.py split
@@ -266,31 +272,45 @@ def _load_function(module_file: str, qualname: str):
         app = get_active_app()
         if app is not None and qualname in app._job_funcs:
             return app._job_funcs[qualname]
-        raise RuntimeError(f"job '{qualname}' not found in {module_file}")
+        raise RuntimeError(f"job '{qualname}' not found")
 
     # ``obj`` is typically a JobHandle wrapping the real function.
     return getattr(obj, "func", obj)
 
 
-def main() -> None:
-    descriptor: dict[str, Any] = json.load(sys.stdin)
+def _load_function(module_file: str, qualname: str):
+    return resolve_function(import_user_module(module_file), qualname)
+
+
+def run_job_descriptor(descriptor: dict, module=None) -> None:
+    """Run one job descriptor, emitting protocol lines (``completed``/``failed``).
+
+    ``module``: if given, the user module is already imported (fork-server path);
+    otherwise it's imported from ``descriptor["module_file"]`` (plain worker path).
+    Outputs may be registered via the ``job.*`` helpers and/or returned as a dict.
+    """
     job_id = descriptor["job_id"]
     result_dir = descriptor.get("result_dir", "storage/results")
     args = descriptor.get("args", [])
     shard = int(descriptor.get("shard", 0))
     num_shards = int(descriptor.get("num_shards", 1))
-
-    # From here on, keep stdout for the protocol only; user prints go to stderr.
-    sys.stdout = sys.stderr
-
     try:
-        func = _load_function(descriptor["module_file"], descriptor["qualname"])
+        if module is None:
+            func = _load_function(descriptor["module_file"], descriptor["qualname"])
+        else:
+            func = resolve_function(module, descriptor["qualname"])
         ctx = JobContext(job_id, result_dir, shard, num_shards)
-        # Outputs may be registered via the job.* helpers and/or returned as a dict.
         path, outputs = execute_job(func, args, ctx)
         protocol.completed(path, outputs)
     except Exception:
         protocol.failed(traceback.format_exc())
+
+
+def main() -> None:
+    descriptor: dict[str, Any] = json.load(sys.stdin)
+    # From here on, keep stdout for the protocol only; user prints go to stderr.
+    sys.stdout = sys.stderr
+    run_job_descriptor(descriptor)
 
 
 if __name__ == "__main__":

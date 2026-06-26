@@ -60,17 +60,47 @@ author should have to.
 legends don't clip without the tight cost. Make "fast and correct" the default.
 (Applied ad-hoc in TPP — generalize it.)
 
-## 4. Fork-server workers — medium effort, the big perf lever (constraint-sensitive)
+## 4. Fork-server workers — ✅ done (Linux-validated)
 
-**Pain:** measured ~1–3s cold import of polars+scipy+matplotlib *per worker* — now the
-largest slice of the job time.
+**Pain:** measured ~1–3s cold import of polars+scipy+matplotlib *per worker* — the
+largest fixed slice of the job time, paid by every shard.
 
-**Add:** a resident parent that imports heavy deps once, then `fork()`s a fresh child
-per job (COW + `gc.freeze()`). **Distinct from a warm worker pool:** the child still
-dies after its job and memory is still reclaimed by process exit — only the import is
-amortized; no worker is ever reused. Honors the disposable-worker principle, but it
-*does* keep a parent process resident, so it brushes against the "no warm workers"
-stance — decide explicitly before building. Plausibly cuts seconds off every job.
+**Built:** [`kinesin.forkserver`](../python/kinesin/forkserver.py) — a resident parent
+imports the user's module **once**, then `fork()`s a fresh child per job. The child
+inherits the warm import via copy-on-write, runs one job, and exits — memory is still
+reclaimed by process exit and **no worker is reused** (the parent never runs job code,
+so this is *not* a warm worker pool). One Unix-socket connection == one job == one
+child, streaming the same worker protocol lines.
+
+**Measured (TPP, macOS, warm OS cache):** cold worker ≈ 3.65s/job vs fork ≈ 2.36s/job —
+**~1.3s (35%) saved per job** plus a one-time server import; and it collapses an
+N-shard job's N cold imports into one. A fork-safe job completes in ~47ms/fork.
+
+**The hazard, confirmed:** `fork()` after native thread pools / fork-hostile
+frameworks. Forcing single-threaded native libs (`POLARS_MAX_THREADS=1` etc., set
+before import) covers polars/OpenBLAS, and polars `write_parquet` + matplotlib + scipy
+`curve_fit` all ran fine in the forked child. But on **macOS**, scipy LAPACK calls
+(`solve_triangular` via `gaussian_kde`, used by the violin + distribution plots) go
+through Apple's **Accelerate** framework, which segfaults in a forked child regardless
+of thread settings — a documented macOS limitation (why CPython defaults to `spawn`
+there). So the full TPP job can't complete via fork on macOS.
+
+**Runtime wiring (done):** `crates/kinesin-runtime/src/forkserver.rs` — a
+`ForkServerManager` lazily starts one `python -m kinesin.forkserver` per module file,
+waits for its readiness line, and hands out the socket path. `worker.rs::run_worker`
+routes each job/shard over that socket (`run_via_socket`) and falls back to spawning a
+fresh worker process if the socket can't be reached. Gated on at runtime by OS
+(`cfg!(target_os = "linux")`) / `KINESIN_FORKSERVER`.
+
+**Validated end-to-end on Linux (Docker, full runtime + WS):** the full TPP job —
+including the `gaussian_kde`→LAPACK that segfaults on macOS — completes through the
+fork path (all 3 tables, both galleries), and is **~33% faster: 6.7s (fork off) → 4.5s
+(fork on)**. macOS falls back cleanly with no regression (6.3s).
+
+**Gate:** `forkserver.fork_supported()` (Python) and the Rust manager both default fork
+on only for Linux; `KINESIN_FORKSERVER=1/0` overrides. Known limitation: a job that
+times out under the fork transport can't be force-killed via the socket (closing it
+sends the child EPIPE on its next emit); acceptable for now.
 
 ## 5. Auto-balanced parallelism + automatic progress — medium effort
 
