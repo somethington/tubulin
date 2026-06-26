@@ -54,12 +54,93 @@ function Widget({ node, send }: { node: UiNode; send: Send }) {
   }
 }
 
+// A collapsible card grouping the widgets between its start marker and matching end.
+function Group({
+  node,
+  items,
+  send,
+}: {
+  node: UiNode;
+  items: UiNode[];
+  send: Send;
+}) {
+  const collapsible = node.props.collapsible !== false;
+  const [open, setOpen] = useState<boolean>(node.props.expanded !== false);
+  return (
+    <section className="kin-group">
+      <button
+        type="button"
+        className="kin-group-head"
+        onClick={() => collapsible && setOpen((o) => !o)}
+        disabled={!collapsible}
+      >
+        <span className="kin-group-title">{node.props.title}</span>
+        {collapsible && (
+          <span className={`kin-group-chev ${open ? "open" : ""}`} aria-hidden>
+            ⌄
+          </span>
+        )}
+      </button>
+      {/* Keep children mounted when collapsed (hide via CSS) so their state and
+          values aren't lost on collapse → expand. */}
+      <div className={`kin-group-body${open ? "" : " collapsed"}`}>
+        {renderNodes(items, send)}
+      </div>
+    </section>
+  );
+}
+
+// Flat node list → blocks, collapsing `group_start`…`group_end` spans into <Group>.
+function renderNodes(nodes: UiNode[], send: Send): any[] {
+  const out: any[] = [];
+  let i = 0;
+  while (i < nodes.length) {
+    const n = nodes[i];
+    if (n.kind === "group_start") {
+      const items: UiNode[] = [];
+      let depth = 1;
+      i++;
+      while (i < nodes.length && depth > 0) {
+        if (nodes[i].kind === "group_start") depth++;
+        else if (nodes[i].kind === "group_end") {
+          depth--;
+          if (depth === 0) {
+            i++;
+            break;
+          }
+        }
+        items.push(nodes[i]);
+        i++;
+      }
+      out.push(<Group key={n.id} node={n} items={items} send={send} />);
+    } else if (n.kind === "group_end") {
+      i++; // stray end marker — skip
+    } else {
+      out.push(
+        <div className="block" key={n.id}>
+          <Widget node={n} send={send} />
+        </div>,
+      );
+      i++;
+    }
+  }
+  return out;
+}
+
 export function App() {
   const [title, setTitle] = useState("TPP Solver");
   const [nodes, setNodes] = useState<UiNode[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () => (localStorage.getItem("kinesin-theme") as "light" | "dark") || "light",
+  );
   const sockRef = useRef<KinesinSocket | null>(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("kinesin-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const sock = new KinesinSocket(
@@ -105,6 +186,12 @@ export function App() {
         <div className="side-foot">
           <span className={`dot ${connected ? "ok" : "off"}`} />
           {connected ? "connected" : "offline"} · Kinesin runtime
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          >
+            {theme === "dark" ? "☀ light" : "☾ dark"}
+          </button>
         </div>
       </aside>
 
@@ -120,11 +207,7 @@ export function App() {
         {nodes.length === 0 ? (
           <div className="muted">Waiting for the runtime…</div>
         ) : (
-          nodes.map((n) => (
-            <div className="block" key={n.id}>
-              <Widget node={n} send={send} />
-            </div>
-          ))
+          renderNodes(nodes, send)
         )}
       </main>
     </div>

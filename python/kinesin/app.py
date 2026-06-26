@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import sys
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
 
 from .jobs import JobBinding, JobHandle
@@ -62,6 +63,29 @@ class App:
 
     def header(self, value: str) -> Widget:
         return self._add("header", {"value": value})
+
+    @contextmanager
+    def group(self, title: str, collapsible: bool = True, expanded: bool = True):
+        """Group the widgets created inside the ``with`` block into a collapsible card
+        (like Streamlit's expander)::
+
+            with app.group("Data Visualization Options"):
+                app.checkbox("Show distribution")
+                app.checkbox("Violin plot")
+
+        Implemented with ``group_start`` / ``group_end`` marker nodes: the children
+        stay normal top-level widgets, so their values seed and flow exactly as
+        ungrouped ones do — the frontend just renders the span between the markers as
+        one bordered, collapsible card.
+        """
+        self._add(
+            "group_start",
+            {"title": title, "collapsible": bool(collapsible), "expanded": bool(expanded)},
+        )
+        try:
+            yield
+        finally:
+            self._add("group_end", {})
 
     def button(self, label: str) -> Widget:
         return self._add("button", {"label": label})

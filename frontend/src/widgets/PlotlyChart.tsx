@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import Plotly from "plotly.js-dist-min";
+// @ts-expect-error — plain-JS theme from the @kinesin/design package
+import { kinesinPlotlyLayout } from "@kinesin/design/plotly-theme.js";
 import type { WidgetProps } from "../types";
 
 export function PlotlyChart({ node }: WidgetProps) {
@@ -8,7 +10,22 @@ export function PlotlyChart({ node }: WidgetProps) {
 
   useEffect(() => {
     if (ref.current && figure?.data) {
-      Plotly.react(ref.current, figure.data, figure.layout ?? {}, {
+      // Apply the Kinesin chart chrome (bg / fonts / grid / colorway) while keeping
+      // the figure's own titles, axis labels and ranges.
+      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      const theme = kinesinPlotlyLayout(dark ? "dark" : "light");
+      const fig = figure.layout ?? {};
+      const layout = {
+        ...theme,
+        ...fig,
+        paper_bgcolor: theme.paper_bgcolor,
+        plot_bgcolor: theme.plot_bgcolor,
+        colorway: theme.colorway,
+        font: theme.font,
+        xaxis: { ...theme.xaxis, ...(fig.xaxis ?? {}) },
+        yaxis: { ...theme.yaxis, ...(fig.yaxis ?? {}) },
+      };
+      Plotly.react(ref.current, figure.data, layout, {
         responsive: true,
         displayModeBar: true,
         displaylogo: false,

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#ffffff;color:#16181d}
+  ::selection{background:#fbd9c8}
+  @keyframes kxpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.78)}}
+</style>
+</helmet>
+
+<div style="width:100%;overflow-x:hidden">
+
+  <!-- ===== NAV ===== -->
+  <header style="max-width:1140px;margin:0 auto;padding:22px 32px;display:flex;align-items:center;gap:32px">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div style="position:relative;width:26px;height:26px;flex:none">
+        <div style="position:absolute;left:0;bottom:0;width:8.5px;height:8.5px;background:#e35d2b;border-radius:2px"></div>
+        <div style="position:absolute;left:9px;bottom:9px;width:8.5px;height:8.5px;background:#e35d2b;border-radius:2px;opacity:.66"></div>
+        <div style="position:absolute;left:18px;bottom:18px;width:8.5px;height:8.5px;background:#e35d2b;border-radius:2px;opacity:.4"></div>
+      </div>
+      <span style="font:700 20px/1 'Space Grotesk';letter-spacing:-.02em">Kinesin</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:26px;margin-left:8px">
+      <a href="#" style="font:500 14px/1 'IBM Plex Sans';color:#5b6470;text-decoration:none">Docs</a>
+      <a href="#" style="font:500 14px/1 'IBM Plex Sans';color:#5b6470;text-decoration:none">Widgets</a>
+      <a href="#" style="font:500 14px/1 'IBM Plex Sans';color:#5b6470;text-decoration:none">Runtime</a>
+      <a href="#" style="font:500 14px/1 'IBM Plex Sans';color:#5b6470;text-decoration:none">Examples</a>
+    </nav>
+    <div style="flex:1"></div>
+    <a href="#" style="font:500 14px/1 'IBM Plex Sans';color:#16181d;text-decoration:none">GitHub</a>
+    <a href="#" style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#16181d;padding:10px 16px;border-radius:7px;text-decoration:none">Get started</a>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section style="max-width:1140px;margin:0 auto;padding:56px 32px 40px;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center">
+    <div>
+      <div style="display:inline-flex;align-items:center;gap:8px;border:1px solid #f0d2c3;background:#fdf1ea;padding:6px 12px;border-radius:999px;margin-bottom:24px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#e35d2b"></span>
+        <span style="font:500 12px/1 'IBM Plex Mono';color:#c34d20">v0.1 · Rust runtime + React</span>
+      </div>
+      <h1 style="font:700 52px/1.06 'Space Grotesk';letter-spacing:-.025em;margin:0 0 20px">Data apps for science,<br>built to scale.</h1>
+      <p style="font:400 18px/1.6 'IBM Plex Sans';color:#5b6470;margin:0 0 32px;max-width:480px">Kinesin renders declarative widget trees from a Rust runtime over WebSocket — the ergonomics of a notebook with the throughput of compiled infrastructure.</p>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px">
+        <a href="#" style="font:600 15px/1 'IBM Plex Sans';color:#fff;background:#e35d2b;padding:14px 22px;border-radius:9px;text-decoration:none">Start building</a>
+        <a href="#" style="font:600 15px/1 'IBM Plex Sans';color:#16181d;background:#fff;border:1px solid #d9dee4;padding:14px 22px;border-radius:9px;text-decoration:none">Read the docs</a>
+      </div>
+      <div style="display:inline-flex;align-items:center;gap:12px;background:#0f1115;border-radius:9px;padding:12px 16px;font:500 13px/1 'IBM Plex Mono'">
+        <span style="color:#6b7480">$</span>
+        <span style="color:#e8ebef">pip install kinesin</span>
+        <span style="color:#6b7480">·</span>
+        <span style="color:#f1703c">kinesin run app.py</span>
+      </div>
+    </div>
+
+    <!-- hero preview window -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:14px;box-shadow:0 24px 60px rgba(16,24,40,.14);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:7px;padding:12px 14px;border-bottom:1px solid #eef1f4;background:#f7f9fb">
+        <span style="width:10px;height:10px;border-radius:50%;background:#e4e8ec"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#e4e8ec"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#e4e8ec"></span>
+        <span style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;margin-left:8px">localhost:8501 · RNA-seq DE</span>
+      </div>
+      <div style="display:flex">
+        <div style="width:78px;flex:none;background:#f4f6f8;border-right:1px solid #eef1f4;padding:12px 8px;display:flex;flex-direction:column;gap:7px">
+          <div style="height:7px;width:60%;border-radius:3px;background:#e35d2b"></div>
+          <div style="height:7px;width:80%;border-radius:3px;background:#dde2e8"></div>
+          <div style="height:7px;width:70%;border-radius:3px;background:#dde2e8"></div>
+          <div style="height:7px;width:85%;border-radius:3px;background:#dde2e8"></div>
+        </div>
+        <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="font:600 15px/1.1 'Space Grotesk'">Differential expression</div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:#e35d2b;animation:kxpulse 1.4s ease-in-out infinite"></span><span style="font:600 10px/1 'IBM Plex Mono';color:#e35d2b">RUNNING · 3/5</span></div>
+          <div style="height:5px;background:#eef1f4;border-radius:3px;overflow:hidden"><div style="height:5px;width:62%;background:#e35d2b;border-radius:3px"></div></div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:74px;margin-top:2px">
+            <div style="flex:1;height:50%;background:#e35d2b;border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:78%;background:#2b7a9e;border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:62%;background:#e35d2b;border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:90%;background:#2b7a9e;border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:44%;background:#e35d2b;border-radius:2px 2px 0 0"></div>
+            <div style="flex:1;height:70%;background:#2b7a9e;border-radius:2px 2px 0 0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STAT STRIP ===== -->
+  <section style="max-width:1140px;margin:0 auto;padding:24px 32px 64px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;border-top:1px solid #eef1f4;border-bottom:1px solid #eef1f4;padding:28px 0">
+      <div><div style="font:700 30px/1 'Space Grotesk';letter-spacing:-.02em">14</div><div style="font:400 13px/1.4 'IBM Plex Sans';color:#5b6470;margin-top:6px">built-in widgets</div></div>
+      <div><div style="font:700 30px/1 'Space Grotesk';letter-spacing:-.02em;color:#e35d2b">&lt;16ms</div><div style="font:400 13px/1.4 'IBM Plex Sans';color:#5b6470;margin-top:6px">widget update latency</div></div>
+      <div><div style="font:700 30px/1 'Space Grotesk';letter-spacing:-.02em">0</div><div style="font:400 13px/1.4 'IBM Plex Sans';color:#5b6470;margin-top:6px">UI dependencies to fight</div></div>
+      <div><div style="font:700 30px/1 'Space Grotesk';letter-spacing:-.02em">100%</div><div style="font:400 13px/1.4 'IBM Plex Sans';color:#5b6470;margin-top:6px">themeable via CSS vars</div></div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section style="max-width:1140px;margin:0 auto;padding:0 32px 72px">
+    <div style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b;margin-bottom:12px">WHY KINESIN</div>
+    <h2 style="font:700 36px/1.1 'Space Grotesk';letter-spacing:-.02em;margin:0 0 44px;max-width:620px">A thin, fast layer between your analysis and the browser.</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px">
+      <div style="border:1px solid #e6eaef;border-radius:12px;padding:26px">
+        <div style="width:30px;height:30px;position:relative;margin-bottom:20px">
+          <div style="position:absolute;left:0;bottom:0;width:9px;height:9px;background:#e35d2b;border-radius:2px"></div>
+          <div style="position:absolute;left:10px;bottom:10px;width:9px;height:9px;background:#e35d2b;border-radius:2px;opacity:.6"></div>
+          <div style="position:absolute;left:20px;bottom:20px;width:9px;height:9px;background:#e35d2b;border-radius:2px;opacity:.35"></div>
+        </div>
+        <div style="font:600 17px/1.3 'Space Grotesk';margin-bottom:8px">Declarative widget tree</div>
+        <div style="font:400 14px/1.6 'IBM Plex Sans';color:#5b6470">Describe the UI as a node tree; the server diffs and pushes updates over WebSocket. No render loops, no manual state plumbing.</div>
+      </div>
+      <div style="border:1px solid #e6eaef;border-radius:12px;padding:26px">
+        <div style="width:30px;height:30px;border:2px solid #e35d2b;border-radius:50%;margin-bottom:20px"></div>
+        <div style="font:600 17px/1.3 'Space Grotesk';margin-bottom:8px">Rust runtime</div>
+        <div style="font:400 14px/1.6 'IBM Plex Sans';color:#5b6470">A compiled core handles sessions, streaming and large frames — so dashboards stay responsive as your data grows from megabytes to gigabytes.</div>
+      </div>
+      <div style="border:1px solid #e6eaef;border-radius:12px;padding:26px">
+        <div style="width:30px;height:30px;border-radius:6px;background:#fdf1ea;border:2px solid #e35d2b;margin-bottom:20px;transform:rotate(45deg)"></div>
+        <div style="font:600 17px/1.3 'Space Grotesk';margin-bottom:8px">Theme-first CSS</div>
+        <div style="font:400 14px/1.6 'IBM Plex Sans';color:#5b6470">Hand-written, dependency-free CSS driven entirely by custom properties. Restyle the whole app — light or dark — by editing tokens.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CODE BAND ===== -->
+  <section style="background:#0f1115;padding:80px 0">
+    <div style="max-width:1140px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:center">
+      <div>
+        <div style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#f1703c;margin-bottom:14px">AUTHOR IN PYTHON</div>
+        <h2 style="font:700 34px/1.12 'Space Grotesk';letter-spacing:-.02em;color:#fff;margin:0 0 18px">If you can write a script,<br>you can ship an app.</h2>
+        <p style="font:400 16px/1.6 'IBM Plex Sans';color:#9aa3af;margin:0 0 28px;max-width:420px">Inputs read like variables, outputs render in place. Kinesin handles the reactive graph, the transport, and the rendering.</p>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:18px;height:18px;border-radius:5px;background:#e35d2b;display:flex;align-items:center;justify-content:center;flex:none"><span style="color:#fff;font:700 11px/1 'IBM Plex Sans'">✓</span></span><span style="font:400 14px/1.4 'IBM Plex Sans';color:#cfd5dc">Hot-reload on save, state preserved</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:18px;height:18px;border-radius:5px;background:#e35d2b;display:flex;align-items:center;justify-content:center;flex:none"><span style="color:#fff;font:700 11px/1 'IBM Plex Sans'">✓</span></span><span style="font:400 14px/1.4 'IBM Plex Sans';color:#cfd5dc">Streaming job logs &amp; progress out of the box</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:18px;height:18px;border-radius:5px;background:#e35d2b;display:flex;align-items:center;justify-content:center;flex:none"><span style="color:#fff;font:700 11px/1 'IBM Plex Sans'">✓</span></span><span style="font:400 14px/1.4 'IBM Plex Sans';color:#cfd5dc">Plotly, tables &amp; galleries built in</span></div>
+        </div>
+      </div>
+
+      <div style="background:#15181e;border:1px solid #262b33;border-radius:12px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid #21262e">
+          <span style="width:10px;height:10px;border-radius:50%;background:#2c323b"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#2c323b"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#2c323b"></span>
+          <span style="font:400 11px/1 'IBM Plex Mono';color:#6b7480;margin-left:8px">app.py</span>
+        </div>
+        <pre style="margin:0;padding:22px 24px;font:400 13.5px/1.85 'IBM Plex Mono';color:#cfd5dc;overflow-x:auto"><span style="color:#f1703c">import</span> kinesin <span style="color:#f1703c">as</span> kn
+
+kn.header(<span style="color:#9bd6a0">"Differential expression"</span>)
+
+genome = kn.select(<span style="color:#9bd6a0">"Reference"</span>, [<span style="color:#9bd6a0">"hg38"</span>, <span style="color:#9bd6a0">"mm10"</span>])
+threads = kn.number(<span style="color:#9bd6a0">"Threads"</span>, value=<span style="color:#e0b66b">16</span>)
+
+<span style="color:#f1703c">if</span> kn.button(<span style="color:#9bd6a0">"Run pipeline"</span>):
+    job = run_deseq2(genome, threads)
+    kn.job_status(job)          <span style="color:#6b7480"># live progress</span>
+    kn.table(job.results)
+    kn.download(job.csv)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WIDGET STRIP ===== -->
+  <section style="max-width:1140px;margin:0 auto;padding:72px 32px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px">
+      <div>
+        <div style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b;margin-bottom:12px">BATTERIES INCLUDED</div>
+        <h2 style="font:700 34px/1.1 'Space Grotesk';letter-spacing:-.02em;margin:0">Fourteen widgets. One theme.</h2>
+      </div>
+      <a href="#" style="font:600 14px/1 'IBM Plex Sans';color:#e35d2b;text-decoration:none">Browse all components →</a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Button</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Checkbox</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Slider</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">NumberInput</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Select</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">FileUpload</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Text</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Header</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">TablePreview</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">ImagePlot</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">PlotlyChart</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Gallery</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#16181d;border:1px solid #e6eaef;background:#fff;padding:10px 14px;border-radius:8px">Download</span>
+      <span style="font:500 13px/1 'IBM Plex Mono';color:#fff;border:1px solid #e35d2b;background:#e35d2b;padding:10px 14px;border-radius:8px">JobStatus</span>
+    </div>
+  </section>
+
+  <!-- ===== CTA ===== -->
+  <section style="max-width:1140px;margin:0 auto 80px;padding:0 32px">
+    <div style="background:#16181d;border-radius:16px;padding:56px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:28px">
+      <div>
+        <h2 style="font:700 32px/1.12 'Space Grotesk';letter-spacing:-.02em;color:#fff;margin:0 0 10px">Ship your first app today.</h2>
+        <p style="font:400 16px/1.5 'IBM Plex Sans';color:#9aa3af;margin:0">Open source. Self-hosted. Built for labs that move fast.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <a href="#" style="font:600 15px/1 'IBM Plex Sans';color:#16181d;background:#fff;padding:14px 22px;border-radius:9px;text-decoration:none">Get started</a>
+        <a href="#" style="font:600 15px/1 'IBM Plex Sans';color:#fff;background:transparent;border:1px solid #39414c;padding:14px 22px;border-radius:9px;text-decoration:none">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer style="border-top:1px solid #eef1f4">
+    <div style="max-width:1140px;margin:0 auto;padding:28px 32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="position:relative;width:22px;height:22px;flex:none">
+        <div style="position:absolute;left:0;bottom:0;width:7px;height:7px;background:#e35d2b;border-radius:2px"></div>
+        <div style="position:absolute;left:7.5px;bottom:7.5px;width:7px;height:7px;background:#e35d2b;border-radius:2px;opacity:.6"></div>
+        <div style="position:absolute;left:15px;bottom:15px;width:7px;height:7px;background:#e35d2b;border-radius:2px;opacity:.35"></div>
+      </div>
+      <span style="font:600 15px/1 'Space Grotesk';letter-spacing:-.01em">Kinesin</span>
+      <span style="font:400 13px/1 'IBM Plex Sans';color:#8a929e;margin-left:8px">© 2026 · MIT licensed</span>
+      <div style="flex:1"></div>
+      <span style="font:400 13px/1 'IBM Plex Sans';color:#8a929e">Docs · Widgets · Runtime · GitHub</span>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+</body>
+</html>

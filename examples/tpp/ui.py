@@ -32,18 +32,20 @@ app.text(
 )
 
 app.header("Analysis options")
-normalize = app.checkbox("Normalize curves to a reference temperature", default=True)
-ref_temp = app.select("Reference temperature (°C)", [str(t) for t in _temps], default=str(_temps[0]))
+normalize = app.checkbox("Normalize to a reference temperature", default=True)
+ref_temp = app.select("Select the reference temperature (°C)", [str(t) for t in _temps], default=str(_temps[0]))
 r2 = app.slider("R² threshold for accepting a fit", min=0.5, max=0.99, step=0.01, default=0.8)
 seed = app.number("Imputation seed", default=42)
 
-app.header("Outputs to generate")
-show_volcano = app.checkbox("Volcano plot + statistics", default=True)
-show_violin = app.checkbox("Violin plot (melting points by treatment)", default=True)
-show_distribution = app.checkbox("Melting-point distribution", default=True)
-show_curves = app.checkbox("Per-protein melting-curve gallery", default=True)
-show_normality = app.checkbox("Shapiro-Wilk normality tests", default=True)
-max_curves = app.number("Max curves to plot (0 = all fitted proteins)", default=0)
+# A collapsible card, mirroring the upstream Streamlit app's "Data Visualization
+# Options" expander.
+with app.group("Data Visualization Options"):
+    show_distribution = app.checkbox("Show Distribution of Melting Points", default=True)
+    show_violin = app.checkbox("Compare Melting Points Between Treatments (Violin Plot)", default=True)
+    show_volcano = app.checkbox("Mann-Whitney and Benjamini-Hochberg", default=True)
+    show_curves = app.checkbox("Per-protein melting-curve gallery", default=True)
+    show_normality = app.checkbox("Shapiro-Wilk normality tests", default=True)
+    max_curves = app.number("Max curves to plot (0 = all fitted proteins)", default=0)
 
 run = app.button("Run TPP analysis")
 
