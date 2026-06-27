@@ -16,7 +16,8 @@ import tpp_pipeline as tpp
 @app.job(parallel=True)
 def tpp_analyze(
     tsv_path, meta_path, normalize, ref_temp, r2_threshold, seed,
-    show_volcano, show_violin, show_distribution, show_curves, show_normality, max_curves, job,
+    show_volcano, show_violin, show_distribution, show_curves,
+    perform_sw, sw_log, sw_sqrt, sw_boxcox, sw_yeojohnson, max_curves, job,
 ):
     sel = float(ref_temp) if ref_temp not in (None, "") else None
 
@@ -63,7 +64,20 @@ def tpp_analyze(
                                                        tpp.plotly_distribution(full["summary_table"])))
         avg_table = tpp.averaged_summary(rd, params)
         job.table("averaged", avg_table)
-        norm = tpp.normality_table(full["averaged_table"]) if show_normality else None
+        # Shapiro-Wilk only if requested; the toggles pick which transformations.
+        norm = None
+        if perform_sw:
+            selected = [
+                name
+                for name, on in (
+                    ("Log(ΔTm + shift)", sw_log),
+                    ("Square Root", sw_sqrt),
+                    ("Box-Cox", sw_boxcox),
+                    ("Yeo-Johnson", sw_yeojohnson),
+                )
+                if on
+            ]
+            norm = tpp.normality_table(full["averaged_table"], transforms=selected)
         if norm is not None and not norm.is_empty():
             job.table("normality", norm)
 

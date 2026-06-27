@@ -380,7 +380,9 @@ def averaged_summary(replicate_data, params):
     return pl.DataFrame(rows, schema=schema) if rows else pl.DataFrame(schema=schema)
 
 
-def normality_table(averaged_table):
+def normality_table(averaged_table, transforms=None):
+    """Shapiro-Wilk on ΔTm under several transformations. ``transforms`` (a set of
+    names) selects which to test; ``None`` tests all. "Original" is always included."""
     pivot = averaged_table.pivot(values="melting_point", index="protein", on="treatment")
     cols = sorted(c for c in pivot.columns if c != "protein")  # alphabetical, matches pandas
     if len(cols) < 2:
@@ -390,15 +392,18 @@ def normality_table(averaged_table):
     if len(delta) < 3:
         return pl.DataFrame()
 
-    transforms = {
+    all_transforms = {
         "Original": delta,
         "Log(ΔTm + shift)": np.log(delta - delta.min() + 1),
         "Square Root": np.sqrt(delta - delta.min()),
         "Box-Cox": boxcox(delta - delta.min() + 1)[0],
         "Yeo-Johnson": yeojohnson(delta)[0],
     }
+    if transforms is not None:
+        keep = {"Original", *transforms}
+        all_transforms = {k: v for k, v in all_transforms.items() if k in keep}
     rows = []
-    for name, vals in transforms.items():
+    for name, vals in all_transforms.items():
         v = np.asarray(vals)
         v = v[np.isfinite(v)]
         if len(v) < 3:

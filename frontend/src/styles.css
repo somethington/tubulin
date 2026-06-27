@@ -130,6 +130,12 @@ body {
 .block {
   margin-bottom: 18px;
 }
+/* a widget gated off by `enabled_when` — greyed and non-interactive */
+.block.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+}
 
 /* collapsible group (app.group / expander) */
 .kin-group {

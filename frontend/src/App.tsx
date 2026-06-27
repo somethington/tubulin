@@ -54,15 +54,19 @@ function Widget({ node, send }: { node: UiNode; send: Send }) {
   }
 }
 
+const noop: Send = () => {};
+
 // A collapsible card grouping the widgets between its start marker and matching end.
 function Group({
   node,
   items,
   send,
+  values,
 }: {
   node: UiNode;
   items: UiNode[];
   send: Send;
+  values: Record<string, any>;
 }) {
   const collapsible = node.props.collapsible !== false;
   const [open, setOpen] = useState<boolean>(node.props.expanded !== false);
@@ -84,14 +88,20 @@ function Group({
       {/* Keep children mounted when collapsed (hide via CSS) so their state and
           values aren't lost on collapse → expand. */}
       <div className={`kin-group-body${open ? "" : " collapsed"}`}>
-        {renderNodes(items, send)}
+        {renderNodes(items, send, values)}
       </div>
     </section>
   );
 }
 
 // Flat node list → blocks, collapsing `group_start`…`group_end` spans into <Group>.
-function renderNodes(nodes: UiNode[], send: Send): any[] {
+// `values` holds current input values so a widget with `enabled_when` can disable
+// itself when its controller is falsy.
+function renderNodes(
+  nodes: UiNode[],
+  send: Send,
+  values: Record<string, any>,
+): any[] {
   const out: any[] = [];
   let i = 0;
   while (i < nodes.length) {
@@ -112,13 +122,17 @@ function renderNodes(nodes: UiNode[], send: Send): any[] {
         items.push(nodes[i]);
         i++;
       }
-      out.push(<Group key={n.id} node={n} items={items} send={send} />);
+      out.push(
+        <Group key={n.id} node={n} items={items} send={send} values={values} />,
+      );
     } else if (n.kind === "group_end") {
       i++; // stray end marker — skip
     } else {
+      const gate = n.props.enabled_when as string | undefined;
+      const disabled = gate ? !values[gate] : false;
       out.push(
-        <div className="block" key={n.id}>
-          <Widget node={n} send={send} />
+        <div className={`block${disabled ? " disabled" : ""}`} key={n.id}>
+          <Widget node={n} send={disabled ? noop : send} />
         </div>,
       );
       i++;
@@ -132,6 +146,8 @@ export function App() {
   const [nodes, setNodes] = useState<UiNode[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Current input values, so widgets with `enabled_when` can react to their controller.
+  const [values, setValues] = useState<Record<string, any>>({});
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("kinesin-theme") as "light" | "dark") || "light",
   );
@@ -157,6 +173,11 @@ export function App() {
     if (msg.type === "ui_tree") {
       setTitle(msg.title);
       setNodes(msg.nodes);
+      const seed: Record<string, any> = {};
+      for (const n of msg.nodes) {
+        if (n.props && "value" in n.props) seed[n.id] = n.props.value;
+      }
+      setValues(seed);
     } else if (msg.type === "widget_update") {
       setNodes((prev) =>
         prev.map((n) =>
@@ -170,8 +191,13 @@ export function App() {
     }
   }
 
-  const send: Send = (nodeId, event, payload = {}) =>
+  const send: Send = (nodeId, event, payload = {}) => {
+    // Mirror input changes into local state so `enabled_when` dependents react.
+    if (event === "change" && payload && "value" in payload) {
+      setValues((v) => ({ ...v, [nodeId]: (payload as any).value }));
+    }
     sockRef.current?.send({ type: "event", node_id: nodeId, event, payload });
+  };
 
   return (
     <div className="app">
@@ -207,7 +233,7 @@ export function App() {
         {nodes.length === 0 ? (
           <div className="muted">Waiting for the runtime…</div>
         ) : (
-          renderNodes(nodes, send)
+          renderNodes(nodes, send, values)
         )}
       </main>
     </div>

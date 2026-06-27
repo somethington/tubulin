@@ -12,7 +12,11 @@ UI = "examples/tpp/ui.py"
 
 
 def test_tpp_produces_expected_outputs():
-    r = run_app(UI, inputs={"Imputation seed": 42, "number_2": 8})
+    # Shapiro-Wilk is opt-in (default off); enable it so the normality table is produced.
+    r = run_app(
+        UI,
+        inputs={"Imputation seed": 42, "number_2": 8, "Perform Shapiro-Wilk Test": True},
+    )
 
     # Primary result + named tables exist and are non-empty.
     assert r.result_path and r.result_path.endswith(".parquet")

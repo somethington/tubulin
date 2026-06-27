@@ -131,9 +131,10 @@ def _find_action(app: App, job: Optional[str]) -> Dict[str, Any]:
         raise KeyError(f"no submit_job action for job {job!r} (have {[a['job'] for a in submits.values()]})")
     if not submits:
         raise ValueError("app declares no submit_job action (no button wired to a job?)")
-    if len(submits) > 1:
-        names = [a["job"] for a in submits.values()]
-        raise ValueError(f"app has multiple jobs {names}; pass job=<name> to pick one")
+    distinct = {a["job"] for a in submits.values()}
+    if len(distinct) > 1:
+        raise ValueError(f"app has multiple jobs {sorted(distinct)}; pass job=<name> to pick one")
+    # Several buttons may trigger the same job (e.g. Run + Apply) — any is fine.
     return next(iter(submits.values()))
 
 

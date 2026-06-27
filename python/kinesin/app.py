@@ -57,6 +57,12 @@ class App:
         self._nodes.append(widget)
         return widget
 
+    def _gate(self, widget: Widget, controller: Optional[Widget]) -> Widget:
+        """Disable ``widget`` in the UI whenever ``controller``'s value is falsy."""
+        if controller is not None:
+            widget.props["enabled_when"] = controller.id
+        return widget
+
     # -- widgets -----------------------------------------------------------
     def text(self, value: str) -> Widget:
         return self._add("text", {"value": value})
@@ -87,8 +93,8 @@ class App:
         finally:
             self._add("group_end", {})
 
-    def button(self, label: str) -> Widget:
-        return self._add("button", {"label": label})
+    def button(self, label: str, enabled_when: Optional[Widget] = None) -> Widget:
+        return self._gate(self._add("button", {"label": label}), enabled_when)
 
     def file_upload(self, label: str) -> Widget:
         return self._add("file_upload", {"label": label})
@@ -112,8 +118,11 @@ class App:
         return widget
 
     # -- input widgets (their .value can be passed to a job) ----------------
-    def checkbox(self, label: str, default: bool = False) -> Widget:
-        return self._add("checkbox", {"label": label, "value": bool(default)})
+    def checkbox(
+        self, label: str, default: bool = False, enabled_when: Optional[Widget] = None
+    ) -> Widget:
+        w = self._add("checkbox", {"label": label, "value": bool(default)})
+        return self._gate(w, enabled_when)
 
     def slider(
         self, label: str, min: float, max: float, step: float = 0.1, default: float = None
