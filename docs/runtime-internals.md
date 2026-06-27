@@ -18,8 +18,9 @@ the runtime.
 | `session.rs` | `Session` (state map + slots + outbound channel) and `SessionManager` |
 | `actions.rs` | resolve `ArgSpec` args from session state; build the `JobSink` from bindings |
 | `jobs.rs` | `JobManager`: queue, semaphore, sharding, worker streaming, output dispatch |
-| `worker.rs` | spawn a Python worker, feed the descriptor, stream its stdout lines, enforce timeout |
-| `preview.rs` | run `python -m kinesin.preview`, return the JSON |
+| `worker.rs` | run one job: route to a fork-server socket if available, else spawn `python -m kinesin.worker`; stream its line protocol, enforce timeout |
+| `forkserver.rs` | `ForkServerManager`: one persistent `python -m kinesin.forkserver` per module file (Linux-gated); routes descriptors to it over a Unix socket |
+| `preview.rs` | run `python -m kinesin.preview`, return the JSON (fallback when a job didn't write a preview sidecar) |
 
 ## Key types
 
@@ -64,20 +65,45 @@ finish_job(config, sink, records, id, started, result_path, outputs, failure)
    ├─ on failure: status Failed + message; return
    ├─ status Completed (progress 100)
    ├─ for each (node_id, view) in sink.result_nodes:
-   │     result_preview → send_table (run_preview on result_path)
+   │     result_preview → send_table (prefer <path>.preview.json sidecar; else run_preview)
    │     plot:<n>       → send_plot   (read outputs[n] SVG, inline)
    │     plotly:<n>     → send_plotly (read outputs[n] JSON, parse)
-   │     table:<n>      → send_table  (run_preview on outputs[n])
+   │     table:<n>      → send_table  (sidecar, else run_preview, on outputs[n])
    │     gallery:<n>    → send_gallery (list outputs[n] directory → items)
    │     download:<n>   → send_download (/bundle?job=<id> link)
    └─ emit ⏱ elapsed (Instant since the job started)
 ```
 
-`run_worker` (in `worker.rs`): spawns `python -m kinesin.worker` with `PYTHONPATH`
-set and `cwd = project_root`, writes the descriptor to stdin and closes it, drains
-stderr concurrently, reads stdout line-by-line into `WorkerMessage`s, wraps the read
-loop in a `max_runtime_seconds` timeout (kills the child on elapse), and synthesizes a
-`Failed`/`Completed` if the worker exits without a terminal message.
+`run_worker` (in `worker.rs`) builds the job descriptor, then takes one of two
+transports — both funnel through the same `WorkerMessage` pump:
+
+- **Fork-server (preferred on Linux).** `ForkServerManager::socket_for(module_file)`
+  returns a Unix-socket path, lazily starting one `python -m kinesin.forkserver
+  <module>` per module file (it imports the module once, waits for a readiness line).
+  `run_via_socket` connects, sends the descriptor as one line, half-closes, and reads
+  the protocol back. If the socket can't be reached it falls through.
+- **Process (fallback / non-Linux).** `run_via_process` spawns `python -m
+  kinesin.worker` with `PYTHONPATH` set and `cwd = project_root`, writes the descriptor
+  to stdin and closes it, drains stderr concurrently, and reads stdout.
+
+Either way the read loop is wrapped in a `max_runtime_seconds` timeout, and a
+`Failed`/`Completed` is synthesized if the worker exits without a terminal message.
+
+## Fork-server (amortizing the import)
+
+A plain worker pays the full cold import of the user's module (polars/scipy/matplotlib,
+~1–3 s) on every job; for a parallel job, every shard pays it. The fork-server imports
+the module **once** in a resident parent, then `fork()`s a fresh child per job. The
+child inherits the warm import via copy-on-write, runs one job, and exits — so memory
+is still reclaimed by process exit and **no worker is ever reused** (the parent never
+runs job code; this is *not* a warm worker pool). Measured ~33% off the TPP job on
+Linux.
+
+Gated to Linux by default (`ForkServerManager::new` checks `cfg!(target_os = "linux")`;
+`KINESIN_FORKSERVER=1/0` overrides). On macOS it stays off because scipy/numpy LAPACK
+via Apple's Accelerate framework segfaults in a forked child regardless of thread
+settings — the Python side forces native libs single-threaded
+(`POLARS_MAX_THREADS=1`, …) to be fork-safe on Linux's OpenBLAS.
 
 ## Resource allocation
 

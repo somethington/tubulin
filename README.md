@@ -18,22 +18,21 @@ run = app.button("Analyze")
 
 @app.job
 def analyze_csv(path: str, job):
-    import polars as pl, time
+    import polars as pl
     job.log("Reading CSV")
     df = pl.read_csv(path)
-    job.progress(30)
-    time.sleep(2)
-    summary = df.describe()
-    out = f"{job.result_dir}/{job.id}.parquet"
-    summary.write_parquet(out)
+    job.progress(50)
+    job.result(df.describe())    # writes the parquet + a 100-row preview sidecar
     job.progress(100)
-    return {"result_path": out}
 
 job = analyze_csv.submit(upload.path)
 run.on_click(job)            # clicking the button submits the job
 app.job_status(job)          # live status / progress / logs
 app.table_preview(job.result_path)   # first 100 rows of the result
 ```
+
+Hand a job a **dataframe** (`job.result(df)`, `job.table(name, df)`) and the framework
+writes the parquet and the preview for you — no manual paths.
 
 Run it:
 
@@ -55,16 +54,38 @@ Python layer (registration pass + disposable workers)
 storage/{uploads,results,cache}
 ```
 
+## What's here
+
+- **Declarative widgets in Python** — inputs (`checkbox`/`slider`/`number`/`select`/
+  `file_upload`), outputs (`table_preview`/`plot`/`gallery`/`download`/`job_status`),
+  **collapsible `app.group(...)` sections**, and **conditional `enabled_when=`** (a
+  widget greys out until its controller is on). The page renders in source order.
+- **Dataframe-native job outputs** — `job.result(df)` / `job.table(name, df)` write the
+  parquet + a 100-row preview **sidecar** (no post-job preview subprocess); plus
+  `job.write_csv` / `job.write_text` / `job.path` for bundle files.
+- **Parallel jobs** — `@app.job(parallel=True)` + `job.map(...)` / `job.primary(...)`
+  fan work across the machine's cores; the runtime owns sharding.
+- **Interactive outputs** — Plotly charts, a paginated/searchable image gallery, and an
+  on-demand `.zip` download bundle.
+- **Disposable workers** — one process per job, memory reclaimed on exit. On Linux an
+  optional **fork-server** amortizes the heavy import (one import, fork per job).
+- **Headless test harness** — `kinesin.testing.run_app(...)` runs a job in-process and
+  returns its outputs; no browser, no server. See [docs/testing.md](docs/testing.md).
+- **Design system** — `@kinesin/design`: dependency-free CSS tokens (light + dark) and a
+  Plotly theme. See [design/README.md](design/README.md).
+
 ## Documentation
 
 Full docs are in [`docs/`](docs/README.md):
 
 - [architecture.md](docs/architecture.md) — the whole system, lifecycles, memory model, route map, limitations
-- [python-api.md](docs/python-api.md) — `App`, widgets, jobs, the `JobContext` primitives
+- [python-api.md](docs/python-api.md) — `App`, widgets (incl. `group` / `enabled_when`), jobs, the `JobContext` primitives
 - [parallelism.md](docs/parallelism.md) — parallel jobs, `job.map`/`job.primary`, and the multi-tenant gaps
+- [testing.md](docs/testing.md) — the headless `kinesin.testing` harness
 - [protocol.md](docs/protocol.md) — the wire formats and HTTP routes
-- [runtime-internals.md](docs/runtime-internals.md) — the Rust runtime, module by module
+- [runtime-internals.md](docs/runtime-internals.md) — the Rust runtime, module by module (incl. the fork-server)
 - [configuration.md](docs/configuration.md) — `kinesin.toml` and env vars
+- [roadmap.md](docs/roadmap.md) — framework-improvement plan distilled from building TPP (what's done, what's next)
 
 A real adapted app (Thermal Proteome Profiling, with parallel plotting of hundreds of
 curves) lives in [examples/tpp](examples/tpp/README.md).

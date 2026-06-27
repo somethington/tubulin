@@ -19,7 +19,7 @@ or duckdb. The data wrangling is polars; the numerics are numpy/scipy and are ve
 | `tpp_pipeline.py` | Headless **polars + numpy** pipeline: filtering, seeded imputation, `curve_fit` sigmoid fits, Mann-Whitney + BH FDR. Self-contained (no pandas/tpp_solver). |
 | `app_def.py` | The shared Kinesin `App`. |
 | `compute.py` | The `@app.job` — runs the pipeline in a disposable worker, writes the stats table to disk. The "computational file" the runtime imports. |
-| `ui.py` | The Kinesin app: two file uploads + run button + live status + result preview. |
+| `ui.py` | The Kinesin app: options (in two collapsible cards), run button, live status, result preview, Plotly plots, curve gallery, and download — wired to the bundled data. |
 | `benchmark.py` | Runs the analysis Streamlit-style vs Kinesin-style, asserts metrics are identical, reports the performance/memory delta. |
 | `data/` | The upstream example data (`sample_data.tsv`, `sample_metadata.csv`). |
 
@@ -55,9 +55,12 @@ files, swap the literal paths in `ui.py` for `app.file_upload(...)` widgets.)
 The same options and outputs as upstream tpp_solver are exposed:
 
 **Options** (Kinesin input widgets): normalize curves (checkbox), reference
-temperature (select), R² threshold (slider), imputation seed (number), and a toggle
-per output. Changing an option re-runs the job with that setting (verified: toggling
-a plot off skips it).
+temperature (select), R² threshold (slider), imputation seed (number), and a per-output
+toggle — grouped into two collapsible cards mirroring the upstream app ("Data
+Visualization Options" and "Shapiro-Wilk Normality Test"). The Shapiro-Wilk
+transformation choices use `enabled_when`: they grey out until "Perform Shapiro-Wilk
+Test" is on. Settings take effect when you click **Run** — Kinesin keeps widget values
+in session state, so (unlike Streamlit) there's no separate "apply" step.
 
 **Outputs** (all produced by the job, rendered in the browser):
 
@@ -70,7 +73,7 @@ a plot off skips it).
 | Melting-point distribution (hist + KDE) | **interactive Plotly** |
 | **Averaged melting-curve gallery (every fitted protein)** | one sigmoid per treatment (mean-of-replicate intensities); worker plots each to disk one-at-a-time (lean), browsable + paginated, served inline via `/file` |
 | **Averaged data table** | plot-free port of `fit_and_plot_averaged_curves` (bit-identical) → parquet → table |
-| Shapiro-Wilk normality of ΔTm transformations | parquet → table |
+| Shapiro-Wilk normality of ΔTm transformations | parquet → table; the transform toggles (Log / √ / Box-Cox / Yeo-Johnson) filter which are tested |
 
 ### Fitting: 1:1 with tpp_solver
 
@@ -143,6 +146,12 @@ On a 14-core machine with `max_workers=4`, plotting all 1242 curves:
 Raise `max_workers` in `kinesin.toml` to use more cores. Per-worker peak memory stays
 ~276 MB regardless of shard count (each plots one figure at a time).
 
+> These numbers predate two later speedups: per-curve rendering was roughly **halved**
+> (dropping the framework's forced `bbox_inches="tight"` and setting
+> `svg.fonttype="none"`), and table previews are now served from worker-written
+> sidecars instead of post-job preview subprocesses — so the full job now runs in
+> ~10 s here (and faster on Linux with the fork-server).
+
 ### Plotting hundreds of curves, lean
 
 The headline cost of the original is that it builds and **holds a matplotlib figure
@@ -152,10 +161,12 @@ at a time** (fit → save → close), streaming progress, then exits. On this da
 642 curves plotted, **peak worker memory ~276 MB**, all reclaimed when the worker
 exits. The gallery and download read the on-disk SVGs; nothing holds them all in RAM.
 
-The UI mimics the Streamlit original: light theme, the lab logo + sidebar navigation,
-the coral `#FF4B4B` accent, Source Sans, and the same Plotly charts (`plotly_white`,
-built from tpp_solver's own trace/layout code → `fig.to_json()` → rendered by
-plotly.js).
+The UI uses the Kinesin design system (`@kinesin/design`): dependency-free CSS tokens
+with **light and dark** themes, a geometric type system (Space Grotesk / IBM Plex
+Sans / IBM Plex Mono), a warm orange accent, the lab logo + sidebar, and a themed
+Plotly layout. The charts are still built from tpp_solver's own trace/layout code →
+`fig.to_json()` → rendered by plotly.js. (It originally shipped as a Streamlit look-
+alike — coral `#FF4B4B`, Source Sans — later replaced by the design kit.)
 
 This exercised new Kinesin framework widgets: `checkbox`/`slider`/`number`/`select`
 inputs (their `.value` feeds the job), an `image` widget that inlines an SVG, and a

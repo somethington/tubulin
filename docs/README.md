@@ -26,12 +26,17 @@ kinesin run ui.py     # → http://127.0.0.1:8000
 | Doc | What's in it |
 | --- | --- |
 | [architecture.md](architecture.md) | The whole system: components, the registration pass, request/job lifecycles, sharding, memory model, route map, and honest limitations. **Start here.** |
-| [python-api.md](python-api.md) | The Python developer reference: `App`, every widget, refs, the `@app.job` decorator, and the `JobContext` primitives (`map`/`primary`/`output`/…). |
+| [python-api.md](python-api.md) | The Python developer reference: `App`, every widget (incl. collapsible `group` and conditional `enabled_when`), refs, the `@app.job` decorator, and the `JobContext` primitives (`map`/`primary`/dataframe-native `result`/`table`/`write_*`). |
 | [parallelism.md](parallelism.md) | The parallel-job model in depth: `job.map`/`job.primary`, how the runtime allocates workers, the memory/CPU tradeoffs, and what's missing for multi-tenant servers. |
+| [testing.md](testing.md) | The headless `kinesin.testing` harness: run a job in-process and assert on its outputs — no browser, no server. |
 | [protocol.md](protocol.md) | The wire contract: browser↔runtime messages, the app spec, the worker line protocol, and the HTTP routes. |
-| [runtime-internals.md](runtime-internals.md) | The Rust runtime: crate/module map, key types, and how a job actually runs. |
+| [runtime-internals.md](runtime-internals.md) | The Rust runtime: crate/module map, key types, how a job runs, and the optional fork-server. |
 | [configuration.md](configuration.md) | `kinesin.toml` and the environment variables. |
+| [roadmap.md](roadmap.md) | Framework-improvement plan distilled from building TPP — what's shipped (test harness, dataframe outputs, fork-server) and what's next. |
 | [mvp.md](mvp.md) | The original MVP scope and milestone map (historical). |
+
+The frontend's visual system (dependency-free CSS tokens, light + dark, a Plotly theme)
+is its own package: [`design/README.md`](../design/README.md).
 
 ## A worked, real-world example
 

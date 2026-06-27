@@ -41,6 +41,7 @@ Notes:
 | `KINESIN_ROOT` | project root (where `kinesin.toml`, `python/`, `frontend/dist`, `storage/` are resolved) | current working dir |
 | `KINESIN_PYTHON` | the Python interpreter used for register/worker/preview | `<root>/.venv/bin/python` if present, else `python3` |
 | `KINESIN_FRONTEND` | directory of the built frontend to serve | `<root>/frontend/dist` |
+| `KINESIN_FORKSERVER` | force the [fork-server](runtime-internals.md#fork-server-amortizing-the-import) on (`1`) or off (`0`) | on for Linux, else off |
 
 The runtime sets `PYTHONPATH=<root>/python` and `KINESIN_WORKER` / `KINESIN_REGISTER`
 on the Python processes it spawns, so `import kinesin` resolves to the in-repo package

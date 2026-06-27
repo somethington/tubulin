@@ -31,6 +31,18 @@ app.header("Options")
 run = app.button("Run")
 ```
 
+### Collapsible groups (`app.group`)
+
+A context manager that wraps the widgets created inside it into a collapsible card
+(like Streamlit's expander). Children stay normal top-level widgets — their values
+seed and flow exactly as ungrouped ones do — so grouping is purely visual.
+
+```python
+with app.group("Data Visualization Options"):     # collapsible=True, expanded=True
+    show_volcano = app.checkbox("Volcano plot", default=True)
+    show_violin  = app.checkbox("Violin plot", default=True)
+```
+
 ## Input widgets
 
 Each has a `.value` property — a **reference** you pass to a job. The runtime stores
@@ -49,6 +61,17 @@ normalize = app.checkbox("Normalize", default=True)
 r2 = app.slider("R² threshold", min=0.5, max=0.99, step=0.01, default=0.8)
 upload = app.file_upload("Upload CSV")
 # normalize.value, r2.value, upload.path are refs → pass them to a job
+```
+
+### Conditional enable/disable (`enabled_when`)
+
+`app.checkbox(...)` and `app.button(...)` accept `enabled_when=<widget>` — the widget
+greys out and goes non-interactive whenever the controller's value is falsy. The
+frontend tracks input values live, so it reacts as soon as the controller changes.
+
+```python
+perform = app.checkbox("Perform Shapiro-Wilk test", default=False)
+log_t   = app.checkbox("Log transform", default=True, enabled_when=perform)   # disabled until `perform` is on
 ```
 
 ## Jobs
@@ -138,9 +161,10 @@ These let a `parallel=True` job fan out without ever touching shard indices. See
 
 ```python
 # Run a per-item function over `items`, sharded across the runtime's workers.
-# This worker only handles items[shard::num_shards]; a returned matplotlib Figure
-# is auto-saved as "<item>.svg" and closed. `into` names a gallery output.
-job.map(items, fn, into="curves", progress=(0, 100))
+# This worker only handles its slice; a returned matplotlib Figure is auto-saved as
+# "<item>.svg" and closed. `into` names a gallery output. `skip_primary=True` excludes
+# shard 0 (busy with job.primary below) and splits items across the remaining shards.
+job.map(items, fn, into="curves", progress=(0, 50), skip_primary=True)
 
 # Run `fn` once, on shard 0 only (or as a decorator). Put expensive single-copy
 # work here so it isn't duplicated across workers.
@@ -148,10 +172,19 @@ job.map(items, fn, into="curves", progress=(0, 100))
 def _summary():
     ...
 
-# Register outputs (typically inside job.primary):
-job.result(path)              # the main result file (→ table_preview)
-job.output("volcano", path)   # a named artifact (→ image / plot / table widgets)
-job.bundle(                   # register the download .zip (built on demand)
+# Register outputs (typically inside job.primary). The table helpers accept a
+# DataFrame *or* a path; a DataFrame is written to parquet and a 100-row preview
+# sidecar is computed (so the runtime serves the preview without a subprocess):
+job.result(df_or_path)              # main result table (→ table_preview)
+job.table("averaged", df_or_path)   # a named table output (→ result_table)
+job.output("volcano", path)         # a named artifact path (→ image / plot / gallery)
+
+# Path helpers (own the result_dir naming so jobs don't build paths by hand):
+csv_path = job.write_csv("stats", df)        # → <result_dir>/<id>_stats.csv
+svg_path = job.write_text("volcano.svg", s)  # → <result_dir>/<id>_volcano.svg
+p        = job.path("name")                  # → <result_dir>/<id>_name
+
+job.bundle(                         # register the download .zip (built on demand)
     files={"data/stats.csv": csv_path, "figures/volcano.svg": svg_path},
     dirs={"figures/curves": "curves"},   # arc_prefix → output name (a directory)
 )

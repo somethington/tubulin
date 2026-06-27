@@ -19,12 +19,17 @@ click ─► JobManager.submit ─► run_sharded_job
         list the shared dir → gallery;  zip on demand → download
 ```
 
-### `job.map(items, fn, into, progress=(0,100))`
+### `job.map(items, fn, into, progress=(0,100), skip_primary=False)`
 
 Runs `fn` over **only this worker's slice** `items[shard::num_shards]` (a strided
 slice, so load is spread evenly). If `fn(item)` returns a matplotlib `Figure`, the
 framework saves it as `<item>.svg` and closes it; otherwise `fn` writes its own files.
 Every shard writes into the directory bound to output `into`, and streams progress.
+
+`skip_primary=True` excludes shard 0 from the map and splits the items across the
+remaining shards (`items[(shard-1)::(num_shards-1)]`). Use it when shard 0 is busy with
+single-copy analysis in `job.primary` — the map then **overlaps** that analysis instead
+of piling onto the same worker.
 
 ### `job.primary(fn)` / `@job.primary`
 
