@@ -469,6 +469,9 @@ a.kin-download {
 /* tables */
 .table-scroll {
   overflow: auto;
+  /* Bound the height so a long preview becomes a scroll region (with the sticky
+     header below) instead of stretching down the whole page. */
+  max-height: 460px;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
 }
