@@ -54,6 +54,12 @@ class JobContext:
         # Accumulated by the helpers; collected by the worker on completion.
         self._outputs: dict[str, str] = {}
         self._result_path = None
+        # Deferred map/primary work for parallel jobs. ``map``/``primary`` only
+        # *register* tasks; the worker runs them (via :meth:`_run_deferred`) after
+        # the job function returns, when the full plan is known — which is what lets
+        # the framework balance the fan-out (skip the primary shard) and aggregate
+        # progress automatically, with no scheduling knobs in the app.
+        self._tasks: list[dict] = []
 
     @property
     def is_primary(self) -> bool:
@@ -68,12 +74,20 @@ class JobContext:
 
     # -- high-level parallel primitives ------------------------------------
     def primary(self, fn):
-        """Run ``fn`` once, on shard 0 only. Returns ``fn()`` there, else ``None``.
+        """Register single-copy work to run **once, on shard 0**.
 
-        Usable as a call (``job.primary(fn)``) or a decorator (``@job.primary``).
-        Put expensive single-copy work (stats, summary tables) here so it runs once.
+        Usable as a call (``job.primary(fn)``) or a decorator (``@job.primary``);
+        returns ``fn`` unchanged. Put expensive single-copy work (stats, summary
+        tables, the download bundle) here so it isn't duplicated across workers.
+
+        The work is *deferred*: it runs after the job function returns, in parallel
+        with the :meth:`map` fan-out on the other shards. Declaring a primary is also
+        what makes the framework keep shard 0 out of the maps automatically (see
+        :meth:`map`), so the analysis and the rendering overlap instead of piling on
+        the same worker.
         """
-        return fn() if self.is_primary else None
+        self._tasks.append({"kind": "primary", "fn": fn})
+        return fn
 
     def result(self, table) -> str:
         """Register the job's primary result table (bound to ``table_preview``).
@@ -167,45 +181,104 @@ class JobContext:
         with open(path + ".preview.json", "w") as fh:
             json.dump(sidecar, fh)
 
-    def map(self, items, fn, into: str, progress=(0, 100), skip_primary: bool = False) -> int:
+    def map(self, items, fn, into: str, *, progress=None, skip_primary=None) -> None:
         """Fan ``fn`` over ``items``, **sharded across the runtime's workers**.
 
-        This worker processes only its slice ``items[shard::num_shards]`` — the
-        runtime runs the other shards in parallel. ``fn(item)`` may return a
-        matplotlib ``Figure`` (saved as ``<item>.svg`` and closed) or write its own
-        files and return ``None``. All shards write into the directory bound to
-        output ``into``; the runtime builds the gallery by listing it. Streams
-        progress over the given range.
+        Declares the fan-out; the worker runs only its slice once the full plan is
+        known (after the job function returns). ``fn(item)`` may return a matplotlib
+        ``Figure`` (saved as ``<item>.svg`` and closed) or write its own files and
+        return ``None``. All shards write into the directory bound to output ``into``;
+        the runtime builds the gallery by listing it.
 
-        ``skip_primary=True`` excludes shard 0 from the work (and splits ``items``
-        across the remaining shards) — use it when shard 0 is busy with single-copy
-        analysis in ``primary()``, so the map overlaps it instead of piling on.
+        **Balancing and progress are automatic.** When the job also declares a
+        :meth:`primary`, shard 0 is kept out of the map and the items are split across
+        the remaining shards, so the rendering overlaps the single-copy analysis
+        instead of piling onto it. Progress streams over 0–100 automatically; when a
+        job has several maps they share that range in proportion to their item counts.
+        No ``progress`` band or ``skip_primary`` flag to hand-tune.
+
+        ``progress`` / ``skip_primary`` remain as **advanced overrides**: pass an
+        explicit ``(lo, hi)`` to pin this map to a sub-range, or a ``bool`` to force
+        whether shard 0 participates. Leave them ``None`` (the default) for the
+        automatic behaviour.
         """
         out_dir = os.path.join(self.result_dir, f"{self.id}_{into}")
         os.makedirs(out_dir, exist_ok=True)
         self._outputs[into] = out_dir
-        if skip_primary and self.num_shards > 1:
-            if self.is_primary:
-                return 0
-            mine = items[(self.shard - 1) :: (self.num_shards - 1)]
-        else:
-            mine = items[self.shard :: self.num_shards]
-        total = len(mine)
-        lo, hi = progress
-        for i, item in enumerate(mine):
-            artifact = fn(item)
-            if artifact is not None and hasattr(artifact, "savefig"):
-                # Save as laid out — no bbox_inches="tight", which forces a second
-                # render pass per figure (~13ms/curve here). Figures with artists
-                # outside the axes (e.g. an external legend) should reserve space
-                # themselves (subplots_adjust) before being returned.
-                artifact.savefig(os.path.join(out_dir, f"{_safe(item)}.svg"), format="svg")
-                import matplotlib.pyplot as plt
+        self._tasks.append({
+            "kind": "map",
+            "items": list(items),
+            "fn": fn,
+            "out_dir": out_dir,
+            "progress": progress,
+            "skip_primary": skip_primary,
+        })
 
-                plt.close(artifact)
-            if total and (i % 20 == 0 or i == total - 1):
-                self.progress(lo + int((hi - lo) * (i + 1) / total))
-        return total
+    def _run_deferred(self) -> None:
+        """Run the registered :meth:`map`/:meth:`primary` tasks for this shard.
+
+        Called by the worker after the job function returns. By then the whole plan
+        is known, so the framework can balance and aggregate without app input:
+
+        * **Skip-primary is automatic.** If any ``primary`` is declared (and there is
+          more than one shard), each map excludes shard 0 and strides its items across
+          the remaining shards — shard 0 runs the primary instead, overlapping it. An
+          explicit ``skip_primary=`` on a map overrides this.
+        * **Progress is automatic.** A shard's auto-progress maps share 0–100 in
+          proportion to how many items each got, so the bar advances smoothly across
+          all of them. A map given an explicit ``progress=(lo, hi)`` owns that band
+          itself and is left out of the shared budget.
+
+        Tasks run in declaration order, so a single shard (e.g. the test harness, or a
+        one-core machine where skip-primary can't apply) still runs the maps and then
+        the primary exactly as written.
+        """
+        if not self._tasks:
+            return
+
+        has_primary = any(t["kind"] == "primary" for t in self._tasks)
+        maps = [t for t in self._tasks if t["kind"] == "map"]
+
+        # Resolve each map's slice for this shard, applying skip-primary (auto unless
+        # the app pinned it). Skip-primary only bites when there's more than one shard.
+        for t in maps:
+            skip = has_primary if t["skip_primary"] is None else t["skip_primary"]
+            if skip and self.num_shards > 1:
+                t["mine"] = [] if self.is_primary else t["items"][(self.shard - 1) :: (self.num_shards - 1)]
+            else:
+                t["mine"] = t["items"][self.shard :: self.num_shards]
+
+        # Auto-progress budget: total items across maps that didn't pin their own band.
+        auto_total = sum(len(t["mine"]) for t in maps if t["progress"] is None)
+        done = 0
+
+        for t in self._tasks:
+            if t["kind"] == "primary":
+                if self.is_primary:
+                    t["fn"]()
+                continue
+            mine = t["mine"]
+            n = len(mine)
+            explicit = t["progress"]
+            for i, item in enumerate(mine):
+                artifact = t["fn"](item)
+                if artifact is not None and hasattr(artifact, "savefig"):
+                    # Save as laid out — no bbox_inches="tight", which forces a second
+                    # render pass per figure (~13ms/curve here). Figures with artists
+                    # outside the axes (e.g. an external legend) should reserve space
+                    # themselves (subplots_adjust) before being returned.
+                    artifact.savefig(os.path.join(t["out_dir"], f"{_safe(item)}.svg"), format="svg")
+                    import matplotlib.pyplot as plt
+
+                    plt.close(artifact)
+                if n and (i % 20 == 0 or i == n - 1):
+                    if explicit is not None:
+                        lo, hi = explicit
+                        self.progress(lo + int((hi - lo) * (i + 1) / n))
+                    elif auto_total:
+                        self.progress(int(100 * (done + i + 1) / auto_total))
+            if explicit is None:
+                done += n
 
     def bundle(self, files=None, dirs=None) -> str:
         """Register a downloadable .zip (built on demand by the runtime).
@@ -237,6 +310,8 @@ def execute_job(func, args, ctx: "JobContext"):
         result = func(*args, job=ctx)
     else:
         result = func(*args)
+    # Run any map/primary work the job declared (no-op for non-parallel jobs).
+    ctx._run_deferred()
     path = ctx._result_path
     outputs = dict(ctx._outputs)
     if isinstance(result, dict):

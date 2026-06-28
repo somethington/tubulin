@@ -19,17 +19,31 @@ click ─► JobManager.submit ─► run_sharded_job
         list the shared dir → gallery;  zip on demand → download
 ```
 
-### `job.map(items, fn, into, progress=(0,100), skip_primary=False)`
+### `job.map(items, fn, into)`
 
-Runs `fn` over **only this worker's slice** `items[shard::num_shards]` (a strided
-slice, so load is spread evenly). If `fn(item)` returns a matplotlib `Figure`, the
-framework saves it as `<item>.svg` and closes it; otherwise `fn` writes its own files.
-Every shard writes into the directory bound to output `into`, and streams progress.
+Runs `fn` over **only this worker's slice** of `items` (a strided slice, so load is
+spread evenly). If `fn(item)` returns a matplotlib `Figure`, the framework saves it as
+`<item>.svg` and closes it; otherwise `fn` writes its own files. Every shard writes into
+the directory bound to output `into`, and streams progress.
 
-`skip_primary=True` excludes shard 0 from the map and splits the items across the
-remaining shards (`items[(shard-1)::(num_shards-1)]`). Use it when shard 0 is busy with
-single-copy analysis in `job.primary` — the map then **overlaps** that analysis instead
-of piling onto the same worker.
+**Balancing and progress are automatic — the app declares *what* to fan out, not
+*how*.** Two things the author used to hand-tune are now inferred from the plan:
+
+- **Skip the primary shard.** If the job also declares a `job.primary` (see below),
+  shard 0 is kept out of the map and the items are split across the remaining shards
+  (`items[(shard-1)::(num_shards-1)]`), so the rendering **overlaps** the single-copy
+  analysis instead of piling onto the same worker. With no primary, all shards map
+  (`items[shard::num_shards]`).
+- **Aggregate progress.** Each shard's maps share the 0–100 bar in proportion to how
+  many items each got, so several maps advance one smooth bar with no per-map ranges.
+
+This works because `map`/`primary` only *register* the work; the runtime executes it
+after the job function returns, when it can see the whole plan.
+
+> **Advanced overrides.** `job.map(..., skip_primary=<bool>)` forces whether shard 0
+> participates, and `job.map(..., progress=(lo, hi))` pins a map to a sub-range it owns.
+> Leave both at their default (`None`) for the automatic behaviour above — most apps
+> should.
 
 ### `job.primary(fn)` / `@job.primary`
 

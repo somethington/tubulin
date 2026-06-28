@@ -162,12 +162,14 @@ These let a `parallel=True` job fan out without ever touching shard indices. See
 ```python
 # Run a per-item function over `items`, sharded across the runtime's workers.
 # This worker only handles its slice; a returned matplotlib Figure is auto-saved as
-# "<item>.svg" and closed. `into` names a gallery output. `skip_primary=True` excludes
-# shard 0 (busy with job.primary below) and splits items across the remaining shards.
-job.map(items, fn, into="curves", progress=(0, 50), skip_primary=True)
+# "<item>.svg" and closed. `into` names a gallery output. Balancing is automatic:
+# because the job also declares a job.primary (below), shard 0 is kept out of the map
+# and the items split across the rest, and the maps' progress is aggregated to 0-100 —
+# no `skip_primary`/`progress` ranges to tune. (Both remain as advanced overrides.)
+job.map(items, fn, into="curves")
 
 # Run `fn` once, on shard 0 only (or as a decorator). Put expensive single-copy
-# work here so it isn't duplicated across workers.
+# work here so it isn't duplicated across workers; it runs in parallel with the maps.
 @job.primary
 def _summary():
     ...

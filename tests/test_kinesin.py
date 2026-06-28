@@ -95,6 +95,58 @@ def test_worker_runs_job_and_writes_result(tmp_path):
     assert pl.read_parquet(out_path).shape == (9, 3)
 
 
+def test_parallel_auto_skips_primary_and_aggregates_progress(tmp_path):
+    """A parallel job declares maps + a primary without any scheduling knobs; the
+    framework keeps shard 0 out of the maps and streams smooth 0-100 progress."""
+    from kinesin import protocol
+    from kinesin.worker import JobContext, execute_job
+
+    proteins = [f"P{i}" for i in range(12)]
+
+    def job_fn(job):
+        # No skip_primary, no progress ranges — the framework infers both.
+        job.map(proteins, lambda p: None, into="avg")   # fn writes its own files (none here)
+        job.map(proteins, lambda p: None, into="rep")
+
+        @job.primary
+        def _summary():
+            job.output("summary", "ran-on-shard-0")
+
+    shards = 4
+    seen_per_shard = []
+    progresses = []
+    old = protocol.progress
+    protocol.progress = lambda p: progresses.append(int(p))  # type: ignore[assignment]
+    try:
+        for shard in range(shards):
+            progresses.clear()
+            ctx = JobContext("jid", str(tmp_path), shard=shard, num_shards=shards)
+            # Count items each shard actually maps over.
+            counted = {"avg": 0, "rep": 0}
+            ctx.map(proteins, lambda p, c=counted: c.__setitem__("avg", c["avg"] + 1), into="avg")
+            ctx.map(proteins, lambda p, c=counted: c.__setitem__("rep", c["rep"] + 1), into="rep")
+
+            @ctx.primary
+            def _summary():
+                ctx.output("summary", "ran-on-shard-0")
+
+            _, outputs = execute_job(lambda job: None, [], ctx)
+            seen_per_shard.append((counted, "summary" in outputs, list(progresses)))
+    finally:
+        protocol.progress = old  # type: ignore[assignment]
+
+    # Shard 0 runs the primary and maps nothing; the others split the items.
+    assert seen_per_shard[0][0] == {"avg": 0, "rep": 0}
+    assert seen_per_shard[0][1] is True                       # primary ran on shard 0 only
+    assert all(not s[1] for s in seen_per_shard[1:])
+    # Every protein is mapped exactly once across the non-primary shards (both maps).
+    assert sum(s[0]["avg"] for s in seen_per_shard) == len(proteins)
+    assert sum(s[0]["rep"] for s in seen_per_shard) == len(proteins)
+    # A worker shard's progress is monotonic and tops out at 100 (two maps share 0-100).
+    worker = seen_per_shard[1][2]
+    assert worker == sorted(worker) and worker[-1] == 100
+
+
 def test_preview_returns_first_rows(tmp_path):
     parquet = tmp_path / "r.parquet"
     pl.DataFrame({"n": range(250)}).write_parquet(parquet)

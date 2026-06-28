@@ -30,13 +30,13 @@ def tpp_analyze(
     if int(max_curves) > 0:
         proteins = proteins[: int(max_curves)]
 
-    # Fan the curves out across the runtime's workers — but NOT shard 0, which is busy
-    # with the analysis below; this overlaps the two instead of piling on shard 0.
+    # Fan the curves out across the runtime's workers. Because the job also declares a
+    # primary (below), the framework automatically keeps shard 0 — busy with that
+    # analysis — out of the maps and aggregates the two maps' progress, so this app
+    # never tunes shard slicing or progress ranges.
     if show_curves:
-        job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "averaged"),
-                into="avg_curves", progress=(0, 50), skip_primary=True)
-        job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "replicate"),
-                into="rep_curves", progress=(50, 100), skip_primary=True)
+        job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "averaged"), into="avg_curves")
+        job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "replicate"), into="rep_curves")
 
     # Expensive single-copy outputs (stats + summaries): once, on shard 0, in parallel
     # with the other shards rendering curves.

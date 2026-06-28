@@ -102,14 +102,31 @@ on only for Linux; `KINESIN_FORKSERVER=1/0` overrides. Known limitation: a job t
 times out under the fork transport can't be force-killed via the socket (closing it
 sends the child EPIPE on its next emit); acceptable for now.
 
-## 5. Auto-balanced parallelism + automatic progress — medium effort
+## 5. Auto-balanced parallelism + automatic progress — ✅ done
 
 **Pain:** we hand-tuned `skip_primary=True` and `progress=(0,50)`/`(50,100)` ranges to
 overlap shard-0 analysis with rendering — scheduler expertise leaking into the app.
 
-**Add:** declare "this is the single-copy task, these are the fan-out items" and let
-the runtime balance shards and aggregate progress automatically — no `skip_primary`,
-no manual ranges.
+**Shipped:** `job.map` / `job.primary` now only *register* work; the worker runs it
+([`worker.py` `JobContext._run_deferred`](../python/kinesin/worker.py)) after the job
+function returns, when it can see the whole plan. That deferral is what lets the
+framework balance and aggregate with no app input:
+
+- **Auto skip-primary.** Declaring a `job.primary` keeps shard 0 out of every `job.map`
+  (when there's more than one shard) and strides the items across the rest — the
+  rendering overlaps the single-copy analysis automatically. (The blocker before was
+  ordering: `map` is called before `primary`, so only a deferred plan knows a primary
+  exists.)
+- **Auto progress.** A shard's maps share the 0–100 bar in proportion to their item
+  counts; several maps advance one smooth bar. The runtime already averages progress
+  across shards, so no per-map ranges are needed.
+
+`skip_primary=`/`progress=(lo,hi)` remain as advanced per-map overrides (default
+`None` = automatic). TPP's `compute.py` dropped both knobs from its two `job.map`
+calls; verified via the #1 harness across shard counts (curve count is invariant) plus
+a unit test asserting shard 0 maps nothing and worker progress is monotonic to 100.
+Pure Python change — the Rust runtime (shard-count decision, cross-shard averaging) was
+already in place.
 
 ## 6. Typed widget↔output bindings via codegen — medium effort
 

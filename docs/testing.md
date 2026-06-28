@@ -27,8 +27,8 @@ run.
   silently ignored). File-upload args have no default, so pass them here.
 - **`job`** selects which job to run when an app declares more than one. (Several
   buttons bound to the *same* job are fine — any is used.)
-- **`shards`** runs the job as N sequential shards to exercise the sharding /
-  `skip_primary` slicing. This is for *correctness*, not the runtime's parallel
+- **`shards`** runs the job as N sequential shards to exercise the sharding and
+  auto skip-primary slicing. This is for *correctness*, not the runtime's parallel
   wall-clock — shards run one after another here.
 - **`result_dir`** is where outputs are written (a fresh temp dir by default).
 

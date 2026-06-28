@@ -21,7 +21,7 @@ a browser. That's what this module is for::
 This runs the job **in-process** through the same execution core the worker uses
 (:func:`kinesin.worker.execute_job`), so output-collection semantics are identical.
 What it does *not* reproduce is the runtime's real parallelism: by default the job
-runs as a single shard. Pass ``shards=N`` to exercise the sharding/`skip_primary`
+runs as a single shard. Pass ``shards=N`` to exercise the sharding / auto skip-primary
 slicing — shards run **sequentially** here, so ``elapsed`` is a single-machine
 sequential time, not the runtime's wall-clock. Use it for correctness, not for the
 parallel speed number (spin up the real runtime for that).
