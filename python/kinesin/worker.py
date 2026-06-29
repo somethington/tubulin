@@ -93,12 +93,11 @@ class JobContext:
         """Register the job's primary result table (bound to ``table_preview``).
 
         Pass a **dataframe** (it's written to parquet under ``result_dir``) or a path
-        to an already-written file. Either way a 100-row preview sidecar is computed
-        so the runtime serves it without spawning a preview subprocess.
+        to an already-written file. The runtime reads the parquet preview natively,
+        so no sidecar is written here.
         """
         path = self._to_parquet("result", table) if _is_frame(table) else table
         self._result_path = path
-        self._write_preview(path)
         return path
 
     def output(self, name: str, path: str) -> str:
@@ -112,12 +111,11 @@ class JobContext:
     def table(self, name: str, table) -> str:
         """Register a named **table** output (bound to ``result_table``).
 
-        Pass a **dataframe** or a path; a preview sidecar is computed either way, so
-        the runtime needs no preview subprocess.
+        Pass a **dataframe** or a path; the runtime reads the parquet preview
+        natively, so no sidecar is written here.
         """
         path = self._to_parquet(name, table) if _is_frame(table) else table
         self._outputs[name] = path
-        self._write_preview(path)
         return path
 
     # -- file helpers: own the result_dir pathing so jobs don't build paths --
@@ -150,36 +148,6 @@ class JobContext:
         with open(path, "w") as fh:
             fh.write(content)
         return path
-
-    def _write_preview(self, path: str) -> None:
-        """Write ``<path>.preview.json`` ({columns, rows, total_rows, truncated})."""
-        try:
-            import polars as pl
-
-            df = pl.read_parquet(path)
-        except Exception:
-            return  # not a parquet the worker can read; runtime will fall back
-        import json
-        import math
-
-        def safe(v):
-            if isinstance(v, float) and math.isnan(v):
-                return None
-            try:
-                json.dumps(v)
-                return v
-            except (TypeError, ValueError):
-                return str(v)
-
-        head = df.head(100)
-        sidecar = {
-            "columns": head.columns,
-            "rows": [[safe(v) for v in row] for row in head.iter_rows()],
-            "total_rows": df.height,
-            "truncated": df.height > 100,
-        }
-        with open(path + ".preview.json", "w") as fh:
-            json.dump(sidecar, fh)
 
     def map(self, items, fn, into: str, *, progress=None, skip_primary=None) -> None:
         """Fan ``fn`` over ``items``, **sharded across the runtime's workers**.

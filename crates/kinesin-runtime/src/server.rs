@@ -5,17 +5,21 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, Multipart, Query, State, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::{json, Value};
+use tokio::io::AsyncWriteExt;
+use tokio_util::io::ReaderStream;
+use tower_http::compression::CompressionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use crate::preview::run_preview;
+use crate::preview::preview_file;
 use crate::state::AppState;
 use crate::websocket::handle_socket;
 
@@ -45,6 +49,8 @@ pub async fn serve(state: Arc<AppState>) -> anyhow::Result<()> {
         .route("/bundle", get(bundle_handler))
         .route("/health", get(health_handler))
         .fallback_service(serve_dir)
+        // gzip/br for text-ish payloads (JS bundle, SVG plots, Plotly/JSON, previews).
+        .layer(CompressionLayer::new())
         .layer(DefaultBodyLimit::max(MAX_UPLOAD_BYTES))
         .with_state(state);
 
@@ -72,16 +78,13 @@ async fn upload_handler(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    while let Some(field) = multipart
+    // The client sends a single file field per upload; take the first.
+    if let Some(mut field) = multipart
         .next_field()
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("bad upload: {e}")))?
     {
         let filename = field.file_name().map(str::to_string);
-        let data = field
-            .bytes()
-            .await
-            .map_err(|e| (StatusCode::BAD_REQUEST, format!("read failed: {e}")))?;
 
         let upload_id = Uuid::new_v4();
         let ext = filename
@@ -91,9 +94,25 @@ async fn upload_handler(
             .unwrap_or("dat");
         let stored = state.config.upload_dir.join(format!("{upload_id}.{ext}"));
 
-        tokio::fs::write(&stored, &data)
+        // Stream the field straight to disk (Rule 2) — never hold the whole upload
+        // in memory.
+        let mut file = tokio::fs::File::create(&stored)
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("write failed: {e}")))?;
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("create failed: {e}")))?;
+        let mut written: u64 = 0;
+        while let Some(chunk) = field
+            .chunk()
+            .await
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("read failed: {e}")))?
+        {
+            file.write_all(&chunk)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("write failed: {e}")))?;
+            written += chunk.len() as u64;
+        }
+        file.flush()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("flush failed: {e}")))?;
 
         // Return a path relative to the project root; workers run with that cwd.
         let rel = stored
@@ -102,7 +121,7 @@ async fn upload_handler(
             .to_string_lossy()
             .to_string();
 
-        info!(path = %rel, bytes = data.len(), "stored upload");
+        info!(path = %rel, bytes = written, "stored upload");
         return Ok(Json(json!({
             "upload_id": upload_id,
             "path": rel,
@@ -135,7 +154,7 @@ async fn preview_handler(
         return Err((StatusCode::FORBIDDEN, "path outside project root".into()));
     }
 
-    match run_preview(&state.config, &canonical.to_string_lossy()).await {
+    match preview_file(&state.config, &canonical.to_string_lossy()).await {
         Ok(map) => Ok(Json(Value::Object(map))),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
     }
@@ -178,22 +197,12 @@ async fn bundle_handler(
         if !Path::new(&manifest).exists() {
             return Err((StatusCode::NOT_FOUND, "no bundle for this job".into()));
         }
-        let output = tokio::process::Command::new(&state.config.python)
-            .arg("-m")
-            .arg("kinesin.zipjob")
-            .arg(&manifest)
-            .arg(&zip)
-            .env("PYTHONPATH", &state.config.pythonpath)
-            .current_dir(&state.config.project_root)
-            .output()
+        // Build natively on a blocking thread (zip is synchronous I/O).
+        let (m, z) = (manifest.clone(), zip.clone());
+        tokio::task::spawn_blocking(move || crate::bundle::build_bundle(&m, &z))
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("zip failed: {e}")))?;
-        if !output.status.success() {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("bundle build failed: {}", String::from_utf8_lossy(&output.stderr)),
-            ));
-        }
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("zip task: {e}")))?
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("bundle build failed: {e}")))?;
     }
 
     serve_file(&state, Some(&zip), true).await
@@ -218,9 +227,11 @@ async fn serve_file(
         return Err((StatusCode::FORBIDDEN, "path outside project root".into()));
     }
 
-    let bytes = tokio::fs::read(&canonical)
+    // Stream the file rather than reading it all into memory — bundles can be large.
+    let file = tokio::fs::File::open(&canonical)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("read failed: {e}")))?;
+    let body = Body::from_stream(ReaderStream::new(file));
     let filename = canonical
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -248,7 +259,7 @@ async fn serve_file(
             (axum::http::header::CONTENT_TYPE, content_type.to_string()),
             (axum::http::header::CONTENT_DISPOSITION, disposition),
         ],
-        bytes,
+        body,
     )
         .into_response())
 }

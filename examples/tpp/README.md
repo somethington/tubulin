@@ -129,7 +129,7 @@ out across that many processes, each handed its `job.shard` / `job.num_shards`. 
 shard fits the data and plots its slice `proteins[shard::num_shards]` to shared
 directories; shard 0 also writes the single-artifact outputs. The runtime aggregates
 progress, builds each gallery by listing the shared dirs once all shards finish, and
-zips the download on demand (`/bundle`, via `kinesin.zipjob`).
+zips the download on demand (`/bundle`, built natively in Rust).
 
 Crucially the parallelism lives in **Rust, not Python** — no `multiprocessing.Pool`
 hidden inside one worker. The runtime owns resource allocation (it already manages the

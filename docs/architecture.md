@@ -17,8 +17,8 @@ Rust runtime  — the `kinesin` binary, the source of truth
    └─ Worker manager : spawns Python workers, streams their stdout
    │  spawn once :  python -m kinesin.register ui.py   → AppSpec JSON
    │  spawn /job :  python -m kinesin.worker           → progress/log/result lines
-   │  spawn      :  python -m kinesin.preview <file>   → first 100 rows
-   │  spawn      :  python -m kinesin.zipjob <manifest> → on-demand download .zip
+   │  spawn      :  python -m kinesin.preview <file>   → first 100 rows (csv/ipc only;
+   │                                                     parquet is read natively in Rust)
    ▼
 Python layer (a one-shot registration pass + disposable workers)
    ▼

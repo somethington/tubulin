@@ -57,10 +57,6 @@ impl ForkServerManager {
         }
     }
 
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
     /// Path to `module_file`'s fork-server socket, starting the server on first use.
     /// Returns `None` (caller falls back to a plain worker) when disabled or on failure.
     pub async fn socket_for(&self, module_file: &str) -> Option<PathBuf> {

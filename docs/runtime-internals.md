@@ -118,7 +118,13 @@ per-job parallelism with global concurrency** — fine for one user, wrong for m
 
 `server.rs::serve_file(state, path, attachment)` backs both `/file` (inline) and
 `/download` (attachment): canonicalize the path, reject anything not under
-`project_root`, read it, set content-type by extension. `/bundle?job=<id>` checks for
-`<result_dir>/<job_id>_results.zip`; if absent it runs `python -m kinesin.zipjob
-<job_id>_bundle.json <…>.zip` (expanding the manifest's directory globs so it captures
-every shard's curves), then serves the zip.
+`project_root`, set content-type by extension, and **stream** the file (no
+read-into-memory). `/bundle?job=<id>` checks for `<result_dir>/<job_id>_results.zip`;
+if absent it builds the zip **natively in Rust** ([`bundle.rs`](../crates/kinesin-runtime/src/bundle.rs),
+on a blocking thread) from `<job_id>_bundle.json` — expanding the manifest's directory
+globs so it captures every shard's curves — then streams it.
+
+Result previews (`/preview` and slot-bound table widgets) read parquet **natively in
+Rust** ([`preview.rs`](../crates/kinesin-runtime/src/preview.rs)) — no subprocess. Only
+non-parquet formats (csv/ipc) fall back to `python -m kinesin.preview`. Uploads are
+streamed straight to disk, and text-ish responses are gzip/br-compressed.

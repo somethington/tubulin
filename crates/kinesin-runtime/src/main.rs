@@ -4,6 +4,7 @@
 //! owning sessions, the job queue, disposable Python workers, and result previews.
 
 mod actions;
+mod bundle;
 mod cli;
 mod config;
 mod forkserver;

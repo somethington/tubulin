@@ -127,6 +127,6 @@ widget updates and fans them to the owning session.
 | `GET /bundle` | `?job=<id>` | builds (once) and serves the job's results `.zip` |
 | `GET /health` | — | `{ status, app, sessions }` |
 
-`/preview`, `/file`, `/download` take a path; `/bundle` takes a job id and runs
-`kinesin.zipjob` against `<result_dir>/<job_id>_bundle.json` (a manifest the job wrote
+`/preview`, `/file`, `/download` take a path; `/bundle` takes a job id and builds the
+zip natively in Rust from `<result_dir>/<job_id>_bundle.json` (a manifest the job wrote
 with `job.bundle(...)`). All reject paths outside the project root.

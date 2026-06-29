@@ -6,13 +6,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use kinesin_protocol::{JobDef, JobStatus, ServerMessage, WorkerMessage};
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
 
 use crate::config::Config;
-use crate::preview::run_preview;
+use crate::preview::preview_file;
 use crate::forkserver::ForkServerManager;
 use crate::worker::run_worker;
 
@@ -167,6 +167,7 @@ async fn run_job(
     let mut result_path: Option<String> = None;
     let mut outputs: HashMap<String, String> = HashMap::new();
     let mut failure: Option<String> = None;
+    let mut last_progress: i32 = -1; // coalesce duplicate progress values
 
     run_worker(&config, &forkservers, &job_id, &job_def, &args, 0, 1, |msg| match msg {
         WorkerMessage::Log { message } => {
@@ -174,7 +175,10 @@ async fn run_job(
             sink.status(json!({ "logs": logs.clone() }));
         }
         WorkerMessage::Progress { progress } => {
-            sink.status(json!({ "progress": progress }));
+            if progress as i32 != last_progress {
+                last_progress = progress as i32;
+                sink.status(json!({ "progress": progress }));
+            }
         }
         WorkerMessage::Completed { result } => {
             result_path = result.path;
@@ -274,6 +278,9 @@ async fn run_sharded_job(
 
     // Shared progress: each shard reports 0-100 of its own slice; show the average.
     let progress = Arc::new(Mutex::new(vec![0u8; shards]));
+    // Last averaged percent actually sent — coalesce so N shards don't spam the WS
+    // with duplicate values (only whole-percent changes go out).
+    let last_sent = Arc::new(AtomicUsize::new(usize::MAX));
     let logs = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let mut handles = Vec::with_capacity(shards);
@@ -286,6 +293,7 @@ async fn run_sharded_job(
         let job_def = job_def.clone();
         let args = args.clone();
         let progress = progress.clone();
+        let last_sent = last_sent.clone();
         let logs = logs.clone();
 
         handles.push(tokio::spawn(async move {
@@ -303,7 +311,10 @@ async fn run_sharded_job(
                         g[shard] = p;
                         g.iter().map(|&x| x as usize).sum::<usize>() / g.len()
                     };
-                    sink.status(json!({ "progress": avg }));
+                    // Only emit when the whole-percent average actually moves.
+                    if last_sent.swap(avg, Ordering::SeqCst) != avg {
+                        sink.status(json!({ "progress": avg }));
+                    }
                 }
                 WorkerMessage::Log { message } => {
                     // Only the primary shard narrates, to keep the log readable.
@@ -397,33 +408,19 @@ fn send_download(sink: &JobSink, node_id: &str, job_id: &str) {
     );
 }
 
-/// Preview a parquet file into a table widget (or mark it missing).
-///
-/// Prefers a `<path>.preview.json` sidecar the worker may have pre-computed (no
-/// subprocess); otherwise falls back to running `kinesin.preview`.
+/// Preview a parquet file into a table widget (or mark it missing). Read natively
+/// in Rust (no subprocess) via [`preview_file`], which falls back to Python for
+/// non-parquet formats.
 async fn send_table(config: &Config, sink: &JobSink, node_id: &str, path: Option<&str>) {
     let props = match path {
         None => json!({ "ready": true, "missing": true }),
-        Some(path) => {
-            let sidecar = format!("{path}.preview.json");
-            if let Ok(text) = tokio::fs::read_to_string(&sidecar).await {
-                match serde_json::from_str::<Map<String, Value>>(&text) {
-                    Ok(mut m) => {
-                        m.insert("ready".into(), Value::Bool(true));
-                        Value::Object(m)
-                    }
-                    Err(e) => json!({ "ready": true, "error": format!("bad preview: {e}") }),
-                }
-            } else {
-                match run_preview(config, path).await {
-                    Ok(mut preview) => {
-                        preview.insert("ready".into(), Value::Bool(true));
-                        Value::Object(preview)
-                    }
-                    Err(e) => json!({ "ready": true, "error": e }),
-                }
+        Some(path) => match preview_file(config, path).await {
+            Ok(mut preview) => {
+                preview.insert("ready".into(), Value::Bool(true));
+                Value::Object(preview)
             }
-        }
+            Err(e) => json!({ "ready": true, "error": e }),
+        },
     };
     sink.send_to(node_id, props);
 }
