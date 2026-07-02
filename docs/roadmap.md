@@ -241,6 +241,89 @@ Original analysis below.
 Composes with #9: the cache check is the same kind of Rust short-circuit before a
 worker spawns.
 
+---
+
+Items #12–#17 came out of the #11 review pass and the dependency-footprint
+analysis: gaps the code itself exposed once the native I/O layer landed.
+Suggested order for what's next: **#12 (CI protects everything else) → #9 →
+#8 → #13**, with #3/#7 as small-item filler.
+
+## 12. CI + committed compat fixture — small effort, highest protection
+
+**Pain:** the codebase now has real test coverage (Rust unit tests, the Python
+suite, the TPP integration test) and **nothing runs it** — no `.github/workflows`
+exists. Worse, the one test covering real polars-parquet compatibility
+([`preview.rs` `reads_polars_written_parquet`](../crates/kinesin-runtime/src/preview.rs))
+is `#[ignore]`d behind a `KINESIN_TEST_PARQUET` env var pointing at an
+uncommitted, undocumented fixture — it can only ever run on the machine where it
+was written, while the roadmap advertises the compatibility it checks as
+"verified".
+
+**Add:** commit the sub-KB polars-written zstd fixture under `tests/`, drop the
+env var and `#[ignore]`, and add a workflow running `cargo test` + `cargo clippy`
++ `pytest` (including the TPP integration test). Everything this roadmap shipped
+was verified by hand at the time; nothing gates regressions.
+
+## 13. Native csv/ipc preview — delete `preview.py` — small-medium effort
+
+**Pain:** the preview contract lives in two implementations (Rust for parquet,
+Python for csv/ipc), and they **already drifted**: `preview.py` emitted bare
+`NaN` tokens that serde_json rejects — found and patched in the #11 review, but
+the dual-contract structure that produced the bug is still standing.
+
+**Add:** the `arrow` crate already reads CSV and IPC; extend
+[`preview.rs`](../crates/kinesin-runtime/src/preview.rs) to cover them and delete
+`python/kinesin/preview.py` entirely. Kills the last preview subprocess *and*
+the drift class structurally, instead of patching divergences as they're found.
+(Same shape as #11's zipjob removal.)
+
+## 14. Fork-transport timeout kill — small effort
+
+**Pain:** #4's documented open gap: a job that times out under the fork
+transport can't be force-killed — closing the socket only sends the child EPIPE
+on its *next* emit, so a hung child (stuck in native code, emitting nothing)
+leaks a process and its memory indefinitely.
+
+**Add:** the forked child reports its PID as its first protocol line; on timeout
+the runtime (which already detects it in
+[`worker.rs` `run_via_socket`](../crates/kinesin-runtime/src/worker.rs)) sends
+SIGKILL. Process exit is already the memory-reclamation mechanism — this just
+makes it enforceable.
+
+## 15. `GET /jobs` endpoint — trivial
+
+**Pain:** `JobRecord` already tracks id/status/result/logs per job behind an
+`#[allow(dead_code)]` promising "a future /jobs endpoint"
+([`jobs.rs`](../crates/kinesin-runtime/src/jobs.rs)) — the data is collected and
+unreachable.
+
+**Add:** serialize the records map as `GET /jobs`. It's also the natural
+debugging surface for #8's failure kinds. (Promoted from the "productionize"
+list below: as a debugging aid it needs no auth story.)
+
+## 16. Slim the framework's Python floor — investigative, big footprint win
+
+**Pain:** the framework's declared deps resolve to ~350 MB, and **pyarrow alone
+is 122 MB** of it — declared in `pyproject.toml` but polars reads/writes parquet
+natively, so it may be dead weight (possibly only reachable via
+`polars.from_pandas` for pandas-dataframe job outputs). The example venv also
+carries a 43 MB duckdb that nothing imports.
+
+**Add:** one investigative pass — remove `pyarrow`, run the full suite + TPP; if
+only pandas interop needs it, make it an optional extra (`kinesin[pandas]`).
+Evict duckdb from the resolved env. Roughly halves the runtime disk floor if it
+holds.
+
+## 17. Storage retention sweep — small effort
+
+**Pain:** `upload_dir` and `result_dir` grow forever — every upload and every
+job's artifacts persist until someone deletes them by hand. (The #11 review
+fixed *orphaned partial* uploads; completed files still accumulate.)
+
+**Add:** an age-based sweep (config: `storage.retention_days`, off by default)
+at startup and on a timer. Pairs with #9: the cache needs the same eviction
+mechanism, so build it once.
+
 ## Out of scope by design — productionize only on a deliberate decision
 
 [`architecture.md`](architecture.md) declares kinesin single-tenant, in-memory,
@@ -250,9 +333,9 @@ explicit, not silent:
 
 - **Auth / multi-tenant isolation / fair-share scheduling** — one parallel job can
   monopolize the worker pool; any job UUID is world-readable.
-- **Monitoring** — no `/metrics`; `JobRecord` already tracks status/logs/result
-  ([`jobs.rs`](../crates/kinesin-runtime/src/jobs.rs)) but the promised `/jobs`
-  endpoint doesn't exist. Surfacing it is the one cheap item here.
+- **Monitoring** — no `/metrics`. (The `/jobs` introspection endpoint was
+  promoted to #15 above — as a debugging aid it needs no auth story; Prometheus
+  metrics stay here.)
 - **Graceful shutdown** — no SIGTERM drain; in-flight workers die abruptly.
 - **Deployment guide** — no Docker/k8s/cloud story.
 
