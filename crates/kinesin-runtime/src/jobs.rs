@@ -277,10 +277,11 @@ async fn run_sharded_job(
     }));
 
     // Shared progress: each shard reports 0-100 of its own slice; show the average.
-    let progress = Arc::new(Mutex::new(vec![0u8; shards]));
-    // Last averaged percent actually sent — coalesce so N shards don't spam the WS
-    // with duplicate values (only whole-percent changes go out).
-    let last_sent = Arc::new(AtomicUsize::new(usize::MAX));
+    // The last-sent value lives INSIDE the same mutex, and the send happens under
+    // the lock too — so updates can't be delivered out of order (a preempted shard
+    // sending a stale lower average after a fresher one) and duplicate
+    // whole-percent values are coalesced (no WS spam from N shards).
+    let progress = Arc::new(Mutex::new((vec![0u8; shards], usize::MAX)));
     let logs = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let mut handles = Vec::with_capacity(shards);
@@ -293,7 +294,6 @@ async fn run_sharded_job(
         let job_def = job_def.clone();
         let args = args.clone();
         let progress = progress.clone();
-        let last_sent = last_sent.clone();
         let logs = logs.clone();
 
         handles.push(tokio::spawn(async move {
@@ -306,13 +306,15 @@ async fn run_sharded_job(
             let mut failure = None;
             run_worker(&config, &forkservers, &job_id, &job_def, &args, shard, shards, |msg| match msg {
                 WorkerMessage::Progress { progress: p } => {
-                    let avg = {
-                        let mut g = progress.lock().unwrap();
-                        g[shard] = p;
-                        g.iter().map(|&x| x as usize).sum::<usize>() / g.len()
-                    };
-                    // Only emit when the whole-percent average actually moves.
-                    if last_sent.swap(avg, Ordering::SeqCst) != avg {
+                    let mut g = progress.lock().unwrap();
+                    let (shard_progress, last_sent) = &mut *g;
+                    shard_progress[shard] = p;
+                    let avg =
+                        shard_progress.iter().map(|&x| x as usize).sum::<usize>() / shard_progress.len();
+                    // Emit only when the whole-percent average moves; the send stays
+                    // under the lock so averages can't arrive out of order.
+                    if *last_sent != avg {
+                        *last_sent = avg;
                         sink.status(json!({ "progress": avg }));
                     }
                 }

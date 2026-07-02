@@ -52,7 +52,7 @@ def tpp_analyze(
         treatments = [full["metrics"]["control"], full["metrics"]["treatment"]]
 
         # Tables: hand the dataframe straight to the framework — it writes the parquet
-        # under result_dir and the preview sidecar.
+        # under result_dir; the runtime previews it natively.
         job.result(stats)
         if show_volcano:
             job.output("volcano", job.write_text("volcano.json", tpp.plotly_volcano(stats)))

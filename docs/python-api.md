@@ -175,8 +175,8 @@ def _summary():
     ...
 
 # Register outputs (typically inside job.primary). The table helpers accept a
-# DataFrame *or* a path; a DataFrame is written to parquet and a 100-row preview
-# sidecar is computed (so the runtime serves the preview without a subprocess):
+# DataFrame *or* a path; a DataFrame is written to parquet, and the runtime
+# reads the 100-row preview natively in Rust (no subprocess):
 job.result(df_or_path)              # main result table (→ table_preview)
 job.table("averaged", df_or_path)   # a named table output (→ result_table)
 job.output("volcano", path)         # a named artifact path (→ image / plot / gallery)

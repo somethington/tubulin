@@ -148,8 +148,8 @@ Raise `max_workers` in `kinesin.toml` to use more cores. Per-worker peak memory 
 
 > These numbers predate two later speedups: per-curve rendering was roughly **halved**
 > (dropping the framework's forced `bbox_inches="tight"` and setting
-> `svg.fonttype="none"`), and table previews are now served from worker-written
-> sidecars instead of post-job preview subprocesses — so the full job now runs in
+> `svg.fonttype="none"`), and table previews are now read
+> natively by the Rust runtime instead of post-job preview subprocesses — so the full job now runs in
 > ~10 s here (and faster on Linux with the fork-server).
 
 ### Plotting hundreds of curves, lean

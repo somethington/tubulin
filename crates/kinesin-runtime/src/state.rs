@@ -13,6 +13,9 @@ pub struct AppState {
     pub spec: AppSpec,
     pub jobs: JobManager,
     pub sessions: SessionManager,
+    /// Serializes on-demand bundle builds: concurrent `/bundle` requests for the
+    /// same job would otherwise interleave writes on one `.partial` file.
+    pub bundle_lock: tokio::sync::Mutex<()>,
 }
 
 impl AppState {
@@ -23,6 +26,7 @@ impl AppState {
             spec,
             jobs,
             sessions: SessionManager::default(),
+            bundle_lock: tokio::sync::Mutex::new(()),
         }
     }
 }

@@ -20,7 +20,7 @@ the runtime.
 | `jobs.rs` | `JobManager`: queue, semaphore, sharding, worker streaming, output dispatch |
 | `worker.rs` | run one job: route to a fork-server socket if available, else spawn `python -m kinesin.worker`; stream its line protocol, enforce timeout |
 | `forkserver.rs` | `ForkServerManager`: one persistent `python -m kinesin.forkserver` per module file (Linux-gated); routes descriptors to it over a Unix socket |
-| `preview.rs` | run `python -m kinesin.preview`, return the JSON (fallback when a job didn't write a preview sidecar) |
+| `preview.rs` | native parquet preview (arrow/parquet, first 100 rows); falls back to `python -m kinesin.preview` for csv/ipc |
 
 ## Key types
 
@@ -65,10 +65,10 @@ finish_job(config, sink, records, id, started, result_path, outputs, failure)
    ├─ on failure: status Failed + message; return
    ├─ status Completed (progress 100)
    ├─ for each (node_id, view) in sink.result_nodes:
-   │     result_preview → send_table (prefer <path>.preview.json sidecar; else run_preview)
+   │     result_preview → send_table (native parquet read; Python fallback for csv/ipc)
    │     plot:<n>       → send_plot   (read outputs[n] SVG, inline)
    │     plotly:<n>     → send_plotly (read outputs[n] JSON, parse)
-   │     table:<n>      → send_table  (sidecar, else run_preview, on outputs[n])
+   │     table:<n>      → send_table  (native parquet read, on outputs[n])
    │     gallery:<n>    → send_gallery (list outputs[n] directory → items)
    │     download:<n>   → send_download (/bundle?job=<id> link)
    └─ emit ⏱ elapsed (Instant since the job started)
@@ -116,15 +116,21 @@ per-job parallelism with global concurrency** — fine for one user, wrong for m
 
 ## Serving result files
 
-`server.rs::serve_file(state, path, attachment)` backs both `/file` (inline) and
+`server.rs::serve_file(state, path, req, attachment)` backs both `/file` (inline) and
 `/download` (attachment): canonicalize the path, reject anything not under
-`project_root`, set content-type by extension, and **stream** the file (no
-read-into-memory). `/bundle?job=<id>` checks for `<result_dir>/<job_id>_results.zip`;
-if absent it builds the zip **natively in Rust** ([`bundle.rs`](../crates/kinesin-runtime/src/bundle.rs),
-on a blocking thread) from `<job_id>_bundle.json` — expanding the manifest's directory
-globs so it captures every shard's curves — then streams it.
+`project_root`, then delegate to tower-http's `ServeFile` — streaming, mime-guessed
+content-type, and Range/conditional-request support (resumable downloads) — with
+`Content-Disposition` appended. `/bundle?job=<id>` checks for
+`<result_dir>/<job_id>_results.zip`; if absent it builds the zip **natively in Rust**
+([`bundle.rs`](../crates/kinesin-runtime/src/bundle.rs), on a blocking thread,
+serialized behind `AppState::bundle_lock` so concurrent requests can't corrupt one
+`.partial`) from `<job_id>_bundle.json` — expanding the manifest's directory globs
+(Python-glob semantics: `*` skips dotfiles, directories are skipped, relative entries
+resolve against the project root) — then streams it.
 
 Result previews (`/preview` and slot-bound table widgets) read parquet **natively in
 Rust** ([`preview.rs`](../crates/kinesin-runtime/src/preview.rs)) — no subprocess. Only
 non-parquet formats (csv/ipc) fall back to `python -m kinesin.preview`. Uploads are
-streamed straight to disk, and text-ish responses are gzip/br-compressed.
+streamed straight to disk (a guard removes the partial file if the client aborts), and
+text-ish responses are gzip/br-compressed (already-compressed zips and binary result
+files are exempt).

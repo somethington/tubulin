@@ -8,13 +8,19 @@ Rule 4 — the browser only ever sees a preview, never the full dataset.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from typing import Any
 
 
 def _json_safe(value: Any) -> Any:
+    # Non-finite floats have no JSON literal (json.dumps would emit a bare `NaN`
+    # the runtime's serde_json parser rejects) — map them to null like the native
+    # Rust parquet preview does.
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
     try:
-        json.dumps(value)
+        json.dumps(value, allow_nan=False)
         return value
     except (TypeError, ValueError):
         return str(value)
@@ -50,6 +56,7 @@ def main() -> None:
             "truncated": total > limit,
         },
         sys.stdout,
+        allow_nan=False,  # never emit a bare NaN/Infinity token (invalid JSON)
     )
     sys.stdout.flush()
 

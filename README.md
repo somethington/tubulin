@@ -22,7 +22,7 @@ def analyze_csv(path: str, job):
     job.log("Reading CSV")
     df = pl.read_csv(path)
     job.progress(50)
-    job.result(df.describe())    # writes the parquet + a 100-row preview sidecar
+    job.result(df.describe())    # writes the parquet; the runtime previews it natively
     job.progress(100)
 
 job = analyze_csv.submit(upload.path)
@@ -61,7 +61,7 @@ storage/{uploads,results,cache}
   **collapsible `app.group(...)` sections**, and **conditional `enabled_when=`** (a
   widget greys out until its controller is on). The page renders in source order.
 - **Dataframe-native job outputs** — `job.result(df)` / `job.table(name, df)` write the
-  parquet + a 100-row preview **sidecar** (no post-job preview subprocess); plus
+  parquet; the Rust runtime reads the 100-row preview natively (no subprocess); plus
   `job.write_csv` / `job.write_text` / `job.path` for bundle files.
 - **Parallel jobs** — `@app.job(parallel=True)` + `job.map(...)` / `job.primary(...)`
   fan work across the machine's cores; the runtime owns sharding.
