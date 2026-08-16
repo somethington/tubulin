@@ -86,7 +86,11 @@ class App:
         """
         self._add(
             "group_start",
-            {"title": title, "collapsible": bool(collapsible), "expanded": bool(expanded)},
+            {
+                "title": title,
+                "collapsible": bool(collapsible),
+                "expanded": bool(expanded),
+            },
         )
         try:
             yield
@@ -125,11 +129,17 @@ class App:
         return self._gate(w, enabled_when)
 
     def slider(
-        self, label: str, min: float, max: float, step: float = 0.1, default: float = None
+        self,
+        label: str,
+        min: float,
+        max: float,
+        step: float = 0.1,
+        default: float = None,
     ) -> Widget:
         value = min if default is None else default
         return self._add(
-            "slider", {"label": label, "min": min, "max": max, "step": step, "value": value}
+            "slider",
+            {"label": label, "min": min, "max": max, "step": step, "value": value},
         )
 
     def number(self, label: str, default: float = 0) -> Widget:
@@ -156,7 +166,8 @@ class App:
     def result_table(self, job: JobBinding, name: str, caption: str = "") -> Widget:
         """A secondary table the job writes as ``outputs[name]`` (a parquet path)."""
         widget = self._add(
-            "table_preview", {"ready": False, "columns": [], "rows": [], "caption": caption}
+            "table_preview",
+            {"ready": False, "columns": [], "rows": [], "caption": caption},
         )
         self._bindings[widget.id] = {"slot": job.result_slot, "view": f"table:{name}"}
         return widget
@@ -164,7 +175,10 @@ class App:
     def download(self, job: JobBinding, name: str, label: str = "Download") -> Widget:
         """A download button for a file the job writes as ``outputs[name]``."""
         widget = self._add("download", {"ready": False, "label": label})
-        self._bindings[widget.id] = {"slot": job.result_slot, "view": f"download:{name}"}
+        self._bindings[widget.id] = {
+            "slot": job.result_slot,
+            "view": f"download:{name}",
+        }
         return widget
 
     def gallery(self, job: JobBinding, name: str, caption: str = "") -> Widget:

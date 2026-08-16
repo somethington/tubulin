@@ -105,7 +105,9 @@ def test_parallel_auto_skips_primary_and_aggregates_progress(tmp_path):
 
     def job_fn(job):
         # No skip_primary, no progress ranges — the framework infers both.
-        job.map(proteins, lambda p: None, into="avg")   # fn writes its own files (none here)
+        job.map(
+            proteins, lambda p: None, into="avg"
+        )  # fn writes its own files (none here)
         job.map(proteins, lambda p: None, into="rep")
 
         @job.primary
@@ -123,8 +125,16 @@ def test_parallel_auto_skips_primary_and_aggregates_progress(tmp_path):
             ctx = JobContext("jid", str(tmp_path), shard=shard, num_shards=shards)
             # Count items each shard actually maps over.
             counted = {"avg": 0, "rep": 0}
-            ctx.map(proteins, lambda p, c=counted: c.__setitem__("avg", c["avg"] + 1), into="avg")
-            ctx.map(proteins, lambda p, c=counted: c.__setitem__("rep", c["rep"] + 1), into="rep")
+            ctx.map(
+                proteins,
+                lambda p, c=counted: c.__setitem__("avg", c["avg"] + 1),
+                into="avg",
+            )
+            ctx.map(
+                proteins,
+                lambda p, c=counted: c.__setitem__("rep", c["rep"] + 1),
+                into="rep",
+            )
 
             @ctx.primary
             def _summary():
@@ -137,7 +147,7 @@ def test_parallel_auto_skips_primary_and_aggregates_progress(tmp_path):
 
     # Shard 0 runs the primary and maps nothing; the others split the items.
     assert seen_per_shard[0][0] == {"avg": 0, "rep": 0}
-    assert seen_per_shard[0][1] is True                       # primary ran on shard 0 only
+    assert seen_per_shard[0][1] is True  # primary ran on shard 0 only
     assert all(not s[1] for s in seen_per_shard[1:])
     # Every protein is mapped exactly once across the non-primary shards (both maps).
     assert sum(s[0]["avg"] for s in seen_per_shard) == len(proteins)

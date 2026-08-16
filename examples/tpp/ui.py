@@ -33,14 +33,24 @@ app.text(
 
 app.header("Analysis options")
 normalize = app.checkbox("Normalize to a reference temperature", default=True)
-ref_temp = app.select("Select the reference temperature (°C)", [str(t) for t in _temps], default=str(_temps[0]))
-r2 = app.slider("R² threshold for accepting a fit", min=0.5, max=0.99, step=0.01, default=0.8)
+ref_temp = app.select(
+    "Select the reference temperature (°C)",
+    [str(t) for t in _temps],
+    default=str(_temps[0]),
+)
+r2 = app.slider(
+    "R² threshold for accepting a fit", min=0.5, max=0.99, step=0.01, default=0.8
+)
 seed = app.number("Imputation seed", default=42)
 
 # Two collapsible cards, mirroring the upstream Streamlit app.
 with app.group("Data Visualization Options"):
-    show_distribution = app.checkbox("Show Distribution of Melting Points", default=True)
-    show_violin = app.checkbox("Compare Melting Points Between Treatments (Violin Plot)", default=True)
+    show_distribution = app.checkbox(
+        "Show Distribution of Melting Points", default=True
+    )
+    show_violin = app.checkbox(
+        "Compare Melting Points Between Treatments (Violin Plot)", default=True
+    )
     show_volcano = app.checkbox("Mann-Whitney and Benjamini-Hochberg", default=True)
     show_curves = app.checkbox("Per-protein melting-curve gallery", default=True)
     max_curves = app.number("Max curves to plot (0 = all fitted proteins)", default=0)
@@ -50,9 +60,15 @@ with app.group("Shapiro-Wilk Normality Test"):
     # The transformation choices are disabled until Shapiro-Wilk is enabled.
     app.header("Normality Test Selection")
     sw_log = app.checkbox("Log Transformation", default=True, enabled_when=perform_sw)
-    sw_sqrt = app.checkbox("Square Root Transformation", default=True, enabled_when=perform_sw)
-    sw_boxcox = app.checkbox("Box-Cox Transformation", default=True, enabled_when=perform_sw)
-    sw_yeojohnson = app.checkbox("Yeo-Johnson Transformation", default=True, enabled_when=perform_sw)
+    sw_sqrt = app.checkbox(
+        "Square Root Transformation", default=True, enabled_when=perform_sw
+    )
+    sw_boxcox = app.checkbox(
+        "Box-Cox Transformation", default=True, enabled_when=perform_sw
+    )
+    sw_yeojohnson = app.checkbox(
+        "Yeo-Johnson Transformation", default=True, enabled_when=perform_sw
+    )
     # No "Apply" button here: the upstream Streamlit app needed one because it doesn't
     # cache these settings (they reset on the next rerun). Kinesin persists widget values
     # in session state, so the choices simply take effect when "Run TPP analysis" runs.
@@ -83,13 +99,25 @@ run.on_click(job)
 app.job_status(job)
 app.download(job, "bundle", "⬇  Download analysis results (.zip)")
 app.header("Results")
-app.table_preview(job.result_path)  # Mann-Whitney + FDR stats table (per-replicate fits)
+app.table_preview(
+    job.result_path
+)  # Mann-Whitney + FDR stats table (per-replicate fits)
 app.plot(job, "volcano", caption="Volcano plot — ΔTm vs -log10(FDR)")
 app.plot(job, "violin", caption="Violin plot — melting points by treatment")
 app.plot(job, "distribution", caption="Distribution of melting points")
 # The per-protein curves are rendered to SVG for the download zip regardless, so the
 # gallery (which just lists those files) is essentially free — no extra analysis time.
-app.gallery(job, "avg_curves", caption="Averaged melting curves — one sigmoid per treatment")
-app.gallery(job, "rep_curves", caption="Per-replicate melting curves — one sigmoid per replicate")
-app.result_table(job, "averaged", caption="Averaged data — one fit to mean-of-replicate intensities")
-app.result_table(job, "normality", caption="Shapiro-Wilk normality of ΔTm transformations")
+app.gallery(
+    job, "avg_curves", caption="Averaged melting curves — one sigmoid per treatment"
+)
+app.gallery(
+    job,
+    "rep_curves",
+    caption="Per-replicate melting curves — one sigmoid per replicate",
+)
+app.result_table(
+    job, "averaged", caption="Averaged data — one fit to mean-of-replicate intensities"
+)
+app.result_table(
+    job, "normality", caption="Shapiro-Wilk normality of ΔTm transformations"
+)

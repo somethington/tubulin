@@ -123,17 +123,25 @@ def load_app(ui_path: str) -> App:
 
 
 def _find_action(app: App, job: Optional[str]) -> Dict[str, Any]:
-    submits = {nid: a for nid, a in app._actions.items() if a.get("type") == "submit_job"}
+    submits = {
+        nid: a for nid, a in app._actions.items() if a.get("type") == "submit_job"
+    }
     if job is not None:
         for action in submits.values():
             if action["job"] == job:
                 return action
-        raise KeyError(f"no submit_job action for job {job!r} (have {[a['job'] for a in submits.values()]})")
+        raise KeyError(
+            f"no submit_job action for job {job!r} (have {[a['job'] for a in submits.values()]})"
+        )
     if not submits:
-        raise ValueError("app declares no submit_job action (no button wired to a job?)")
+        raise ValueError(
+            "app declares no submit_job action (no button wired to a job?)"
+        )
     distinct = {a["job"] for a in submits.values()}
     if len(distinct) > 1:
-        raise ValueError(f"app has multiple jobs {sorted(distinct)}; pass job=<name> to pick one")
+        raise ValueError(
+            f"app has multiple jobs {sorted(distinct)}; pass job=<name> to pick one"
+        )
     # Several buttons may trigger the same job (e.g. Run + Apply) — any is fine.
     return next(iter(submits.values()))
 
@@ -153,7 +161,9 @@ def _validate_inputs(app: App, inputs: Optional[Dict[str, Any]]) -> None:
         )
 
 
-def _resolve_args(app: App, action: Dict[str, Any], inputs: Optional[Dict[str, Any]]) -> List[Any]:
+def _resolve_args(
+    app: App, action: Dict[str, Any], inputs: Optional[Dict[str, Any]]
+) -> List[Any]:
     """Turn the action's recorded ArgSpecs into concrete values.
 
     Refs resolve to the referenced widget's default value; ``inputs`` overrides them
@@ -255,7 +265,9 @@ def main(argv: Optional[List[str]] = None) -> None:
     """
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
-        print("usage: python -m kinesin.testing <ui.py> [--shards N] [label_or_id=value ...]")
+        print(
+            "usage: python -m kinesin.testing <ui.py> [--shards N] [label_or_id=value ...]"
+        )
         raise SystemExit(2)
 
     ui_path = argv[0]
