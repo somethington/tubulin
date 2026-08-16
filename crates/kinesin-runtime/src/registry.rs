@@ -1,6 +1,3 @@
-//! The registration pass: spawn `python -m kinesin.register <ui.py>` once and parse
-//! the app spec it prints to stdout.
-
 use std::path::Path;
 
 use anyhow::{bail, Context};

@@ -1,16 +1,3 @@
-//! Per-module Python fork-servers — amortize the heavy worker import.
-//!
-//! Instead of spawning `python -m kinesin.worker` (cold import every time) for each
-//! job/shard, the runtime keeps one `python -m kinesin.forkserver <module>` alive per
-//! module file. It imports that module once and `fork()`s a fresh, disposable child
-//! per job. The runtime routes a job by connecting to the server's Unix socket,
-//! sending the descriptor, and reading the same worker line-protocol back.
-//!
-//! Gated to platforms where fork-without-exec is safe (Linux by default; on macOS
-//! Apple's Accelerate framework segfaults a forked child). Override with the
-//! `KINESIN_FORKSERVER` env var (`1` = force on, `0` = force off). When disabled or a
-//! server fails to start, the caller falls back to the plain per-job worker.
-
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -28,7 +15,7 @@ use crate::config::Config;
 const READY: &str = "KINESIN_FORKSERVER_READY";
 
 struct ForkServer {
-    // Held so the process is killed on drop (kill_on_drop). Never read otherwise.
+    /// Held so the process is killed on drop (`kill_on_drop`); never read otherwise.
     _child: Child,
     socket: PathBuf,
 }
@@ -44,7 +31,6 @@ impl ForkServerManager {
         let enabled = match std::env::var("KINESIN_FORKSERVER").ok().as_deref() {
             Some("1") => true,
             Some("0") => false,
-            // fork-without-exec is safe on Linux (OpenBLAS); not on macOS (Accelerate).
             _ => cfg!(target_os = "linux"),
         };
         if enabled {
@@ -58,7 +44,6 @@ impl ForkServerManager {
     }
 
     /// Path to `module_file`'s fork-server socket, starting the server on first use.
-    /// Returns `None` (caller falls back to a plain worker) when disabled or on failure.
     pub async fn socket_for(&self, module_file: &str) -> Option<PathBuf> {
         if !self.enabled {
             return None;
@@ -71,6 +56,13 @@ impl ForkServerManager {
         let socket = server.socket.clone();
         servers.insert(module_file.to_string(), server);
         Some(socket)
+    }
+
+    /// Drop a dead server so the next job restarts it instead of failing forever.
+    pub async fn evict(&self, module_file: &str) {
+        if self.servers.lock().await.remove(module_file).is_some() {
+            tracing::warn!(module = %module_file, "fork-server unreachable; evicted for restart");
+        }
     }
 
     async fn start(&self, module_file: &str) -> Option<ForkServer> {

@@ -1,14 +1,13 @@
-//! Resolving declarative actions against session state.
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use kinesin_protocol::{ArgSpec, Binding};
 use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::Arc;
 
 use crate::jobs::JobSink;
 use crate::session::Session;
 
-/// Resolve a job's argument specs into concrete JSON values using session state.
+/// Resolve a job's argument specs into concrete JSON values from session state.
 pub fn resolve_args(args: &[ArgSpec], session: &Session) -> Result<Vec<Value>, String> {
     args.iter()
         .map(|arg| match arg {
@@ -23,10 +22,7 @@ pub fn resolve_args(args: &[ArgSpec], session: &Session) -> Result<Vec<Value>, S
         .collect()
 }
 
-/// Build the sink describing which widgets a job's updates should drive, by
-/// scanning the global bindings for nodes attached to `result_slot`. Status nodes
-/// get lifecycle updates; every other view ("result_preview", "plot:<name>",
-/// "table:<name>") is dispatched on completion.
+/// Build the sink of widgets a job drives, by scanning bindings for `result_slot`.
 pub fn build_sink(
     bindings: &HashMap<String, Binding>,
     result_slot: &str,

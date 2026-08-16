@@ -1,9 +1,10 @@
-//! Runtime configuration: `kinesin.toml` merged with defaults, plus paths and the
-//! Python interpreter resolved relative to the project root.
+mod raw;
 
 use std::path::{Path, PathBuf};
 
-use serde::Deserialize;
+use anyhow::Context;
+
+use raw::RawConfig;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -17,78 +18,10 @@ pub struct Config {
     pub result_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub frontend_dir: PathBuf,
-    /// Python interpreter used for registration, workers and previews.
+    /// Python interpreter used for registration, workers, and previews.
     pub python: String,
-    /// Value for the workers' `PYTHONPATH` so `import kinesin` resolves.
+    /// Workers' `PYTHONPATH` so `import kinesin` resolves.
     pub pythonpath: PathBuf,
-}
-
-// ---- Raw (on-disk) shape with defaults ------------------------------------
-
-#[derive(Debug, Default, Deserialize)]
-struct RawConfig {
-    #[serde(default)]
-    server: RawServer,
-    #[serde(default)]
-    workers: RawWorkers,
-    #[serde(default)]
-    jobs: RawJobs,
-    #[serde(default)]
-    storage: RawStorage,
-}
-
-#[derive(Debug, Deserialize)]
-struct RawServer {
-    host: String,
-    port: u16,
-}
-impl Default for RawServer {
-    fn default() -> Self {
-        Self {
-            host: "127.0.0.1".into(),
-            port: 8000,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct RawWorkers {
-    max_workers: usize,
-}
-impl Default for RawWorkers {
-    fn default() -> Self {
-        Self { max_workers: 4 }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct RawJobs {
-    max_runtime_seconds: u64,
-    max_queue_size: usize,
-}
-impl Default for RawJobs {
-    fn default() -> Self {
-        Self {
-            max_runtime_seconds: 3600,
-            max_queue_size: 100,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct RawStorage {
-    upload_dir: String,
-    result_dir: String,
-    cache_dir: String,
-}
-impl Default for RawStorage {
-    fn default() -> Self {
-        Self {
-            upload_dir: "storage/uploads".into(),
-            result_dir: "storage/results".into(),
-            cache_dir: "storage/cache".into(),
-        }
-    }
 }
 
 impl Config {
@@ -98,11 +31,13 @@ impl Config {
             Ok(p) => PathBuf::from(p),
             Err(_) => std::env::current_dir()?,
         };
+        // A canonical root keeps path-containment checks correct under symlinks.
+        let project_root = std::fs::canonicalize(&project_root)
+            .with_context(|| format!("cannot resolve project root {}", project_root.display()))?;
 
         let config_file = config_path.unwrap_or_else(|| project_root.join("kinesin.toml"));
         let raw: RawConfig = if config_file.exists() {
-            let text = std::fs::read_to_string(&config_file)?;
-            toml::from_str(&text)?
+            toml::from_str(&std::fs::read_to_string(&config_file)?)?
         } else {
             RawConfig::default()
         };
@@ -129,23 +64,15 @@ impl Config {
             .map(PathBuf::from)
             .unwrap_or_else(|_| project_root.join("frontend/dist"));
 
-        // Port precedence: CLI --port > PORT env (cloud/preview convention) > toml.
-        let env_port = std::env::var("PORT").ok().and_then(|p| p.parse::<u16>().ok());
-
-        // max_workers = 0 means "auto": use the machine's cores. This sizes the
-        // worker pool and bounds how many shards a parallel job fans out into.
-        let max_workers = if raw.workers.max_workers == 0 {
-            std::thread::available_parallelism()
-                .map(|n| n.get())
-                .unwrap_or(4)
-        } else {
-            raw.workers.max_workers
-        };
+        // Port precedence: CLI --port > PORT env > kinesin.toml.
+        let env_port = std::env::var("PORT")
+            .ok()
+            .and_then(|p| p.parse::<u16>().ok());
 
         Ok(Config {
             host: raw.server.host,
             port: port_override.or(env_port).unwrap_or(raw.server.port),
-            max_workers,
+            max_workers: effective_workers(raw.workers.max_workers),
             max_runtime_seconds: raw.jobs.max_runtime_seconds,
             max_queue_size: raw.jobs.max_queue_size.max(1),
             upload_dir: resolve(&raw.storage.upload_dir),
@@ -164,5 +91,14 @@ impl Config {
             std::fs::create_dir_all(dir)?;
         }
         Ok(())
+    }
+}
+
+/// `max_workers = 0` means auto: size the worker pool to the machine's cores.
+fn effective_workers(configured: usize) -> usize {
+    if configured == 0 {
+        std::thread::available_parallelism().map_or(4, |n| n.get())
+    } else {
+        configured
     }
 }
