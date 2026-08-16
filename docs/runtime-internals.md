@@ -10,17 +10,14 @@ the runtime.
 | --- | --- |
 | `main.rs` | entry; tracing init; parse CLI; load config; register; serve |
 | `cli.rs` | hand-rolled arg parser for `run <ui.py> [--port] [--config]` |
-| `config.rs` | load `kinesin.toml` + defaults; resolve paths, Python interpreter, `max_workers` (0 = auto-cores) |
+| `config/` | `mod.rs` loads `kinesin.toml` + defaults (canonicalized project root, Python interpreter, `max_workers` 0 = auto-cores); `raw.rs` is the on-disk TOML shape |
 | `registry.rs` | spawn `python -m kinesin.register`, parse the `AppSpec` |
 | `state.rs` | `AppState { config, spec, jobs, sessions }` shared via `Arc` |
-| `server.rs` | axum router + handlers: `/upload`, `/preview`, `/file`, `/download`, `/bundle`, `/health`, `/ws`, static |
-| `websocket.rs` | per-session loop: send `ui_tree`, receive events, run actions, push updates |
-| `session.rs` | `Session` (state map + slots + outbound channel) and `SessionManager` |
-| `actions.rs` | resolve `ArgSpec` args from session state; build the `JobSink` from bindings |
-| `jobs.rs` | `JobManager`: queue, semaphore, sharding, worker streaming, output dispatch |
-| `worker.rs` | run one job: route to a fork-server socket if available, else spawn `python -m kinesin.worker`; stream its line protocol, enforce timeout |
-| `forkserver.rs` | `ForkServerManager`: one persistent `python -m kinesin.forkserver` per module file (Linux-gated); routes descriptors to it over a Unix socket |
-| `preview.rs` | native parquet preview (arrow/parquet, first 100 rows); falls back to `python -m kinesin.preview` for csv/ipc |
+| `http/` | `mod.rs` axum router (`/health`, `/ws`, static); `upload.rs` streaming multipart; `files.rs` containment-checked `/preview`, `/file`, `/download`; `bundle.rs` lazy `/bundle` builds; `websocket.rs` per-session loop; `events.rs` event → state/action dispatch |
+| `session/` | `mod.rs` `Session` (state map + slots + outbound channel) and `SessionManager`; `actions.rs` resolves `ArgSpec` args and builds the `JobSink` from bindings |
+| `jobs/` | `mod.rs` `JobManager` (bounded queue + semaphore); `runner.rs` single-worker path + shared `finish`; `sharded.rs` parallel fan-out with averaged progress; `outputs.rs` drives bound widgets; `records.rs` bounded job-record store |
+| `workers/` | `mod.rs` `run_worker` + line-protocol pump; `socket.rs` fork-server transport; `process.rs` disposable `python -m kinesin.worker`; `forkserver.rs` `ForkServerManager` (Linux-gated, evicts dead servers) |
+| `artifacts/` | `preview.rs` preview entry point (Python fallback for csv/ipc); `parquet.rs` native arrow/parquet preview (first 100 rows); `bundle.rs` native zip builder |
 
 ## Key types
 
@@ -74,20 +71,23 @@ finish_job(config, sink, records, id, started, result_path, outputs, failure)
    └─ emit ⏱ elapsed (Instant since the job started)
 ```
 
-`run_worker` (in `worker.rs`) builds the job descriptor, then takes one of two
+`run_worker` (in `workers/mod.rs`) builds the job descriptor, then takes one of two
 transports — both funnel through the same `WorkerMessage` pump:
 
 - **Fork-server (preferred on Linux).** `ForkServerManager::socket_for(module_file)`
   returns a Unix-socket path, lazily starting one `python -m kinesin.forkserver
   <module>` per module file (it imports the module once, waits for a readiness line).
-  `run_via_socket` connects, sends the descriptor as one line, half-closes, and reads
-  the protocol back. If the socket can't be reached it falls through.
-- **Process (fallback / non-Linux).** `run_via_process` spawns `python -m
+  `workers/socket.rs` connects, sends the descriptor as one line, half-closes, and reads
+  the protocol back. If the socket can't be reached the dead server is evicted (so the
+  next job restarts it) and the call falls through.
+- **Process (fallback / non-Linux).** `workers/process.rs` spawns `python -m
   kinesin.worker` with `PYTHONPATH` set and `cwd = project_root`, writes the descriptor
   to stdin and closes it, drains stderr concurrently, and reads stdout.
 
-Either way the read loop is wrapped in a `max_runtime_seconds` timeout, and a
-`Failed`/`Completed` is synthesized if the worker exits without a terminal message.
+Either way the read loop is wrapped in a `max_runtime_seconds` timeout. If the worker
+exits without a terminal message, the runtime awaits the drained stderr and the exit
+status: only a clean exit with empty stderr synthesizes `Completed` (empty result);
+anything else synthesizes `Failed` with the exit code and stderr.
 
 ## Fork-server (amortizing the import)
 
@@ -116,20 +116,20 @@ per-job parallelism with global concurrency** — fine for one user, wrong for m
 
 ## Serving result files
 
-`server.rs::serve_file(state, path, req, attachment)` backs both `/file` (inline) and
+`http/files.rs::serve_file(state, path, req, attachment)` backs both `/file` (inline) and
 `/download` (attachment): canonicalize the path, reject anything not under
 `project_root`, then delegate to tower-http's `ServeFile` — streaming, mime-guessed
 content-type, and Range/conditional-request support (resumable downloads) — with
 `Content-Disposition` appended. `/bundle?job=<id>` checks for
 `<result_dir>/<job_id>_results.zip`; if absent it builds the zip **natively in Rust**
-([`bundle.rs`](../crates/kinesin-runtime/src/bundle.rs), on a blocking thread,
+([`artifacts/bundle.rs`](../crates/kinesin-runtime/src/artifacts/bundle.rs), on a blocking thread,
 serialized behind `AppState::bundle_lock` so concurrent requests can't corrupt one
 `.partial`) from `<job_id>_bundle.json` — expanding the manifest's directory globs
 (Python-glob semantics: `*` skips dotfiles, directories are skipped, relative entries
 resolve against the project root) — then streams it.
 
 Result previews (`/preview` and slot-bound table widgets) read parquet **natively in
-Rust** ([`preview.rs`](../crates/kinesin-runtime/src/preview.rs)) — no subprocess. Only
+Rust** ([`artifacts/parquet.rs`](../crates/kinesin-runtime/src/artifacts/parquet.rs)) — no subprocess. Only
 non-parquet formats (csv/ipc) fall back to `python -m kinesin.preview`. Uploads are
 streamed straight to disk (a guard removes the partial file if the client aborts), and
 text-ish responses are gzip/br-compressed (already-compressed zips and binary result

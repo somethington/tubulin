@@ -13,10 +13,10 @@ persistent, disk-backed results.**
 | # | Milestone | Where |
 | --- | --- | --- |
 | 1 | Static UI from Python | `register.py` → `AppSpec` → React renders `ui_tree` |
-| 2 | WebSocket events | `Button` → `event` → `websocket.rs` |
+| 2 | WebSocket events | `Button` → `event` → `http/websocket.rs` |
 | 3 | Runtime executes an action | `set_text` action (see `examples/hello_world`) |
 | 4 | File upload to disk | `POST /upload` → `storage/uploads/`, path in session |
-| 5 | Job queue | `submit_job` → `JobManager` (`jobs.rs`) |
+| 5 | Job queue | `submit_job` → `JobManager` (`jobs/mod.rs`) |
 | 6 | Python worker | `worker.py` runs the job, writes parquet, streams JSON |
 | 7 | Result preview | `preview.py` → first 100 rows → `TablePreview` |
 | 8 | Multi-session isolation | one `Session` per socket; results keyed by `job_id` |

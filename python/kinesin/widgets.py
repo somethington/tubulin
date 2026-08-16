@@ -29,7 +29,9 @@ class Widget:
         """Reference to this input widget's current value (checkbox/slider/...)."""
         return Ref(self.id, "value")
 
-    def on_click(self, action: Union["JobBindingLike", Callable[[], Any], Dict[str, Any]]) -> "Widget":
+    def on_click(
+        self, action: Union["JobBindingLike", Callable[[], Any], Dict[str, Any]]
+    ) -> "Widget":
         """Bind an action to this widget's click.
 
         Accepts a :class:`~kinesin.jobs.JobBinding`, a 0-arg callable that returns

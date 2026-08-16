@@ -65,8 +65,14 @@ def serve(module_file: str, socket_path: str) -> None:
     # that touches a pool created in the parent segfaults otherwise. Parallelism is
     # preserved at the *process* level (one child per shard); only intra-process
     # native threading is disabled, which our per-shard work doesn't need.
-    for var in ("POLARS_MAX_THREADS", "RAYON_NUM_THREADS", "OMP_NUM_THREADS",
-                "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    for var in (
+        "POLARS_MAX_THREADS",
+        "RAYON_NUM_THREADS",
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
         os.environ.setdefault(var, "1")
 
     module = import_user_module(module_file)  # the one warm import
@@ -163,7 +169,9 @@ def request(socket_path: str, descriptor: dict, timeout: float = 300) -> list:
 def main(argv=None) -> None:
     argv = sys.argv[1:] if argv is None else argv
     if len(argv) < 2:
-        sys.stderr.write("usage: python -m kinesin.forkserver <module_file> <socket_path>\n")
+        sys.stderr.write(
+            "usage: python -m kinesin.forkserver <module_file> <socket_path>\n"
+        )
         raise SystemExit(2)
     serve(argv[0], argv[1])
 

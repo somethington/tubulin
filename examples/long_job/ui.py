@@ -23,7 +23,9 @@ def long_task(job):
 
     import polars as pl
 
-    df = pl.DataFrame({"step": list(range(1, 6)), "value": [i * i for i in range(1, 6)]})
+    df = pl.DataFrame(
+        {"step": list(range(1, 6)), "value": [i * i for i in range(1, 6)]}
+    )
     out = f"{job.result_dir}/{job.id}.parquet"
     df.write_parquet(out)
     return {"result_path": out}

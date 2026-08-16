@@ -1,5 +1,3 @@
-//! Shared application state handed to every request handler.
-
 use std::sync::Arc;
 
 use kinesin_protocol::AppSpec;
@@ -13,8 +11,7 @@ pub struct AppState {
     pub spec: AppSpec,
     pub jobs: JobManager,
     pub sessions: SessionManager,
-    /// Serializes on-demand bundle builds: concurrent `/bundle` requests for the
-    /// same job would otherwise interleave writes on one `.partial` file.
+    /// Serializes on-demand bundle builds so one `.partial` file has one writer.
     pub bundle_lock: tokio::sync::Mutex<()>,
 }
 

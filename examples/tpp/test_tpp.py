@@ -15,7 +15,11 @@ def test_tpp_produces_expected_outputs():
     # Shapiro-Wilk is opt-in (default off); enable it so the normality table is produced.
     r = run_app(
         UI,
-        inputs={"Imputation seed": 42, "number_2": 8, "Perform Shapiro-Wilk Test": True},
+        inputs={
+            "Imputation seed": 42,
+            "number_2": 8,
+            "Perform Shapiro-Wilk Test": True,
+        },
     )
 
     # Primary result + named tables exist and are non-empty.
@@ -26,7 +30,9 @@ def test_tpp_produces_expected_outputs():
     assert r.table("averaged").height > 0
 
     # Every bound output the UI expects was written.
-    assert {"volcano", "violin", "distribution", "averaged", "normality"} <= set(r.outputs)
+    assert {"volcano", "violin", "distribution", "averaged", "normality"} <= set(
+        r.outputs
+    )
 
     # The curve fan-out wrote SVGs (limited by our max-curves override).
     assert 0 < len(r.gallery("avg_curves")) <= 8

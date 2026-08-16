@@ -44,7 +44,9 @@ class JobContext:
     has to touch ``shard`` / ``is_primary`` / slicing directly.
     """
 
-    def __init__(self, job_id: str, result_dir: str, shard: int = 0, num_shards: int = 1):
+    def __init__(
+        self, job_id: str, result_dir: str, shard: int = 0, num_shards: int = 1
+    ):
         self.id = job_id
         self.result_dir = result_dir
         # When the runtime parallelises a job, each worker gets a distinct shard
@@ -173,14 +175,16 @@ class JobContext:
         out_dir = os.path.join(self.result_dir, f"{self.id}_{into}")
         os.makedirs(out_dir, exist_ok=True)
         self._outputs[into] = out_dir
-        self._tasks.append({
-            "kind": "map",
-            "items": list(items),
-            "fn": fn,
-            "out_dir": out_dir,
-            "progress": progress,
-            "skip_primary": skip_primary,
-        })
+        self._tasks.append(
+            {
+                "kind": "map",
+                "items": list(items),
+                "fn": fn,
+                "out_dir": out_dir,
+                "progress": progress,
+                "skip_primary": skip_primary,
+            }
+        )
 
     def _run_deferred(self) -> None:
         """Run the registered :meth:`map`/:meth:`primary` tasks for this shard.
@@ -212,7 +216,11 @@ class JobContext:
         for t in maps:
             skip = has_primary if t["skip_primary"] is None else t["skip_primary"]
             if skip and self.num_shards > 1:
-                t["mine"] = [] if self.is_primary else t["items"][(self.shard - 1) :: (self.num_shards - 1)]
+                t["mine"] = (
+                    []
+                    if self.is_primary
+                    else t["items"][(self.shard - 1) :: (self.num_shards - 1)]
+                )
             else:
                 t["mine"] = t["items"][self.shard :: self.num_shards]
 
@@ -235,7 +243,9 @@ class JobContext:
                     # render pass per figure (~13ms/curve here). Figures with artists
                     # outside the axes (e.g. an external legend) should reserve space
                     # themselves (subplots_adjust) before being returned.
-                    artifact.savefig(os.path.join(t["out_dir"], f"{_safe(item)}.svg"), format="svg")
+                    artifact.savefig(
+                        os.path.join(t["out_dir"], f"{_safe(item)}.svg"), format="svg"
+                    )
                     import matplotlib.pyplot as plt
 
                     plt.close(artifact)
@@ -258,7 +268,9 @@ class JobContext:
 
         entries = [{"file": p, "arc": arc} for arc, p in (files or {}).items()]
         for arc_prefix, into in (dirs or {}).items():
-            d = self._outputs.get(into, os.path.join(self.result_dir, f"{self.id}_{into}"))
+            d = self._outputs.get(
+                into, os.path.join(self.result_dir, f"{self.id}_{into}")
+            )
             entries.append({"glob": f"{d}/*", "arc_dir": arc_prefix})
         manifest = os.path.join(self.result_dir, f"{self.id}_bundle.json")
         with open(manifest, "w") as fh:

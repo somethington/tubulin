@@ -15,16 +15,34 @@ import tpp_pipeline as tpp
 
 @app.job(parallel=True)
 def tpp_analyze(
-    tsv_path, meta_path, normalize, ref_temp, r2_threshold, seed,
-    show_volcano, show_violin, show_distribution, show_curves,
-    perform_sw, sw_log, sw_sqrt, sw_boxcox, sw_yeojohnson, max_curves, job,
+    tsv_path,
+    meta_path,
+    normalize,
+    ref_temp,
+    r2_threshold,
+    seed,
+    show_volcano,
+    show_violin,
+    show_distribution,
+    show_curves,
+    perform_sw,
+    sw_log,
+    sw_sqrt,
+    sw_boxcox,
+    sw_yeojohnson,
+    max_curves,
+    job,
 ):
     sel = float(ref_temp) if ref_temp not in (None, "") else None
 
     # Cheap context every shard needs to plot (load + impute + reshape, no stats-fit).
     rd, params = tpp.preprocess_only(
-        tsv_path, meta_path, normalize=bool(normalize),
-        selected_temp=sel, r2_threshold=float(r2_threshold), seed=int(seed),
+        tsv_path,
+        meta_path,
+        normalize=bool(normalize),
+        selected_temp=sel,
+        r2_threshold=float(r2_threshold),
+        seed=int(seed),
     )
     proteins = sorted({p for treatment in rd.values() for p in treatment})
     if int(max_curves) > 0:
@@ -35,17 +53,33 @@ def tpp_analyze(
     # analysis — out of the maps and aggregates the two maps' progress, so this app
     # never tunes shard slicing or progress ranges.
     if show_curves:
-        job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "averaged"), into="avg_curves")
-        job.map(proteins, lambda p: tpp.plot_one(p, rd, params, "replicate"), into="rep_curves")
+        job.map(
+            proteins,
+            lambda p: tpp.plot_one(p, rd, params, "averaged"),
+            into="avg_curves",
+        )
+        job.map(
+            proteins,
+            lambda p: tpp.plot_one(p, rd, params, "replicate"),
+            into="rep_curves",
+        )
 
     # Expensive single-copy outputs (stats + summaries): once, on shard 0, in parallel
     # with the other shards rendering curves.
     @job.primary
     def _summary():
-        job.log(f"Shard 0 runs the analysis; shards 1-{max(job.num_shards - 1, 1)} render curves")
+        job.log(
+            f"Shard 0 runs the analysis; shards 1-{max(job.num_shards - 1, 1)} render curves"
+        )
         full = tpp.run(
-            tsv_path, meta_path, mode="kinesin", normalize=bool(normalize),
-            selected_temp=sel, r2_threshold=float(r2_threshold), seed=int(seed), log_cb=job.log,
+            tsv_path,
+            meta_path,
+            mode="kinesin",
+            normalize=bool(normalize),
+            selected_temp=sel,
+            r2_threshold=float(r2_threshold),
+            seed=int(seed),
+            log_cb=job.log,
         )
         job.progress(60)
         stats = full["stats_df"]
@@ -55,13 +89,23 @@ def tpp_analyze(
         # under result_dir; the runtime previews it natively.
         job.result(stats)
         if show_volcano:
-            job.output("volcano", job.write_text("volcano.json", tpp.plotly_volcano(stats)))
+            job.output(
+                "volcano", job.write_text("volcano.json", tpp.plotly_volcano(stats))
+            )
         if show_violin:
-            job.output("violin", job.write_text("violin.json",
-                                                tpp.plotly_violin(full["averaged_table"], treatments)))
+            job.output(
+                "violin",
+                job.write_text(
+                    "violin.json", tpp.plotly_violin(full["averaged_table"], treatments)
+                ),
+            )
         if show_distribution:
-            job.output("distribution", job.write_text("dist.json",
-                                                       tpp.plotly_distribution(full["summary_table"])))
+            job.output(
+                "distribution",
+                job.write_text(
+                    "dist.json", tpp.plotly_distribution(full["summary_table"])
+                ),
+            )
         avg_table = tpp.averaged_summary(rd, params)
         job.table("averaged", avg_table)
         # Shapiro-Wilk only if requested; the toggles pick which transformations.
@@ -84,16 +128,29 @@ def tpp_analyze(
         # Download bundle: CSV summaries + overview SVGs + every shard's curves.
         files = {
             "data/statistics.csv": job.write_csv("b_stats", stats),
-            "data/replicate_summary.csv": job.write_csv("b_rep", full["replicate_table"]),
+            "data/replicate_summary.csv": job.write_csv(
+                "b_rep", full["replicate_table"]
+            ),
             "data/averaged_summary.csv": job.write_csv("b_avg", avg_table),
-            "figures/volcano.svg": job.write_text("b_volcano.svg", tpp.plot_volcano(stats)),
-            "figures/violin.svg": job.write_text("b_violin.svg", tpp.plot_violin(full["averaged_table"], treatments)),
-            "figures/distribution.svg": job.write_text("b_dist.svg", tpp.plot_distribution(full["summary_table"])),
+            "figures/volcano.svg": job.write_text(
+                "b_volcano.svg", tpp.plot_volcano(stats)
+            ),
+            "figures/violin.svg": job.write_text(
+                "b_violin.svg", tpp.plot_violin(full["averaged_table"], treatments)
+            ),
+            "figures/distribution.svg": job.write_text(
+                "b_dist.svg", tpp.plot_distribution(full["summary_table"])
+            ),
         }
         if norm is not None and not norm.is_empty():
             files["data/normality.csv"] = job.write_csv("b_norm", norm)
-        job.bundle(files=files, dirs={"figures/averaged": "avg_curves", "figures/replicates": "rep_curves"})
+        job.bundle(
+            files=files,
+            dirs={"figures/averaged": "avg_curves", "figures/replicates": "rep_curves"},
+        )
 
         m = full["metrics"]
-        job.log(f"{m['proteins_fit']} proteins fit, {m['significant']} significant (FDR<0.05)")
+        job.log(
+            f"{m['proteins_fit']} proteins fit, {m['significant']} significant (FDR<0.05)"
+        )
         job.progress(100)

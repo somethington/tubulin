@@ -1,9 +1,10 @@
 # Protocol & wire formats
 
-Three message families connect the pieces. The canonical Rust types are in
-[`crates/kinesin-protocol/src/lib.rs`](../crates/kinesin-protocol/src/lib.rs); Python
-(`python/kinesin/protocol.py`) and the frontend (`frontend/src/types.ts`) mirror them
-by hand.
+Three message families connect the pieces. The canonical Rust types live in
+[`crates/kinesin-protocol/src/`](../crates/kinesin-protocol/src) — `messages.rs`
+(browser ↔ runtime), `spec.rs` (AppSpec), `worker.rs` (worker line protocol), all
+re-exported from `lib.rs`; Python (`python/kinesin/protocol.py`) and the frontend
+(`frontend/src/types.ts`) mirror them by hand.
 
 ---
 

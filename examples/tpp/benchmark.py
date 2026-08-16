@@ -90,7 +90,13 @@ def main() -> None:
     kn = _spawn("kinesin")
 
     # --- Metrics must be identical (correctness of the adaptation) -------------
-    keys = ["proteins_in", "curves_fit", "proteins_fit", "proteins_tested", "significant"]
+    keys = [
+        "proteins_in",
+        "curves_fit",
+        "proteins_fit",
+        "proteins_tested",
+        "significant",
+    ]
     sm, km = sl["metrics"], kn["metrics"]
     metrics_match = all(sm[k] == km[k] for k in keys) and sl["mp_hash"] == kn["mp_hash"]
 
@@ -120,7 +126,9 @@ def main() -> None:
     else:
         print("✗ METRICS DIFFER — investigate before trusting the comparison.")
 
-    heap_ratio = sl["py_peak_mb"] / kn["py_peak_mb"] if kn["py_peak_mb"] else float("inf")
+    heap_ratio = (
+        sl["py_peak_mb"] / kn["py_peak_mb"] if kn["py_peak_mb"] else float("inf")
+    )
     print(
         f"\nKinesin runs the same analysis holding {sm['figures_held']} fewer figures, "
         f"with ~{heap_ratio:.1f}x less peak Python heap, and persists the result to disk\n"

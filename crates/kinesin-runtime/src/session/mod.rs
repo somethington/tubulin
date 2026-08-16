@@ -1,7 +1,4 @@
-//! Per-browser session state.
-//!
-//! Enforces Memory Rule 1: a session holds only small things — ids, paths, scalar
-//! parameters, and a slot→job_id map. Large values are rejected.
+pub mod actions;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -10,8 +7,7 @@ use kinesin_protocol::ServerMessage;
 use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 
-/// Upper bound on a single state value once serialised. Paths and ids are tiny;
-/// anything larger is a DataFrame/array that has no business in session memory.
+/// Upper bound on one serialized state value; anything larger belongs on disk.
 const MAX_STATE_VALUE_BYTES: usize = 64 * 1024;
 
 pub struct Session {
@@ -33,7 +29,7 @@ impl Session {
         }
     }
 
-    /// Store a small scalar/path value. Rejects oversized values (Rule 1).
+    /// Store a small scalar/path value; oversized values are rejected.
     pub fn set_state(&self, key: String, value: Value) -> Result<(), String> {
         let size = value.to_string().len();
         if size > MAX_STATE_VALUE_BYTES {
@@ -54,8 +50,7 @@ impl Session {
         self.slots.lock().unwrap().insert(slot, job_id);
     }
 
-    /// Send a message to this session's browser. Errors are ignored (the socket
-    /// may have closed).
+    /// Send a message to this session's browser; a closed socket is not an error.
     pub fn send(&self, msg: ServerMessage) {
         let _ = self.tx.send(msg);
     }

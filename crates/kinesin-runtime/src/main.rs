@@ -1,21 +1,12 @@
-//! Kinesin runtime — the `kinesin` binary.
-//!
-//! `kinesin run ui.py` registers the app via a one-shot Python pass, then serves it,
-//! owning sessions, the job queue, disposable Python workers, and result previews.
-
-mod actions;
-mod bundle;
+mod artifacts;
 mod cli;
 mod config;
-mod forkserver;
+mod http;
 mod jobs;
-mod preview;
 mod registry;
-mod server;
 mod session;
 mod state;
-mod websocket;
-mod worker;
+mod workers;
 
 use std::sync::Arc;
 
@@ -67,5 +58,5 @@ async fn run(args: RunArgs) -> anyhow::Result<()> {
     );
 
     let state = Arc::new(AppState::new(config, spec));
-    server::serve(state).await
+    http::serve(state).await
 }
