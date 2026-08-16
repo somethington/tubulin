@@ -85,9 +85,9 @@ through Apple's **Accelerate** framework, which segfaults in a forked child rega
 of thread settings — a documented macOS limitation (why CPython defaults to `spawn`
 there). So the full TPP job can't complete via fork on macOS.
 
-**Runtime wiring (done):** `crates/kinesin-runtime/src/forkserver.rs` — a
+**Runtime wiring (done):** `crates/kinesin-runtime/src/workers/forkserver.rs` — a
 `ForkServerManager` lazily starts one `python -m kinesin.forkserver` per module file,
-waits for its readiness line, and hands out the socket path. `worker.rs::run_worker`
+waits for its readiness line, and hands out the socket path. `workers/mod.rs::run_worker`
 routes each job/shard over that socket (`run_via_socket`) and falls back to spawning a
 fresh worker process if the socket can't be reached. Gated on at runtime by OS
 (`cfg!(target_os = "linux")`) / `KINESIN_FORKSERVER`.
@@ -154,7 +154,7 @@ scope question, not a task.
 ## 8. Job failure surfacing — medium effort
 
 **Pain:** when a worker dies, its stderr is only examined on crash
-([`worker.rs` `run_via_process`](../crates/kinesin-runtime/src/worker.rs)), and
+([`workers/process.rs`](../crates/kinesin-runtime/src/workers/process.rs)), and
 errors cross the wire as bare strings ([`protocol.py` `failed`](../python/kinesin/protocol.py)).
 Building TPP, a failing shard meant reading stderr by hand to reconstruct what
 broke. The failure path is as much a framework concern as the success path.
@@ -168,12 +168,12 @@ message, which today hides the real cause.
 ## 9. Content-addressed result cache — medium effort, high payoff
 
 **Pain:** `cache_dir` is configured and the directory is created on startup
-([`config.rs`](../crates/kinesin-runtime/src/config.rs)) — but nothing ever reads
+([`config/mod.rs`](../crates/kinesin-runtime/src/config/mod.rs)) — but nothing ever reads
 it. Re-running a job with identical inputs re-does every shard's work.
 
 **Add:** hash the worker descriptor (module + qualname + args) and key results
 under `cache_dir`; a hit short-circuits in the Rust `JobManager` **before any
-worker spawns** ([`jobs.rs`](../crates/kinesin-runtime/src/jobs.rs)). This is
+worker spawns** ([`jobs/`](../crates/kinesin-runtime/src/jobs)). This is
 filesystem result reuse, *not* process reuse — it does **not** touch the
 [[no-warm-workers]] constraint. Opt-in per job so nondeterministic jobs can stay
 uncached. (Either wire it up or drop the dead config knob.)
@@ -195,14 +195,14 @@ whole files through memory — the exact overhead the rest of this roadmap exist
 to remove, just on the Rust side.
 
 **Shipped:**
-- **Native parquet preview** ([`preview.rs`](../crates/kinesin-runtime/src/preview.rs)) —
+- **Native parquet preview** ([`artifacts/preview.rs`](../crates/kinesin-runtime/src/artifacts/preview.rs)) —
   reads head+schema via `arrow`/`parquet` (NaN/non-finite → null, matching the
   Python contract), on a blocking thread. csv/ipc and any read error fall back to
   `python -m kinesin.preview`. The worker no longer writes `.preview.json`
   sidecars. Verified against an arrow-written *and* a polars-written (zstd) file.
 - **Streaming uploads** — `field.chunk()` straight to disk, bounded memory.
 - **Streaming file serving** — `Body::from_stream` over a `ReaderStream`.
-- **Native bundles** ([`bundle.rs`](../crates/kinesin-runtime/src/bundle.rs)) —
+- **Native bundles** ([`artifacts/bundle.rs`](../crates/kinesin-runtime/src/artifacts/bundle.rs)) —
   build the results `.zip` from the manifest in Rust (`zip` + `glob`), no
   `kinesin.zipjob` subprocess; written to `<out>.partial` then renamed.
 - **Cheap wins** — `tower-http` `CompressionLayer` (gzip/br); per-shard `Progress`
@@ -214,10 +214,10 @@ the protocol type for a marginal gain on a bounded payload. Not worth the churn.
 
 Original analysis below.
 
-- **Preview spawns Python + polars per request.** [`preview.rs`](../crates/kinesin-runtime/src/preview.rs)
+- **Preview spawns Python + polars per request.** [`artifacts/preview.rs`](../crates/kinesin-runtime/src/artifacts/preview.rs)
   runs `python -m kinesin.preview` on every on-demand preview, and `preview.py`
   imports polars — hundreds of ms to read the first 100 rows of a parquet file.
-  The sidecar in [`jobs.rs` `send_table`](../crates/kinesin-runtime/src/jobs.rs)
+  The sidecar in [`jobs/outputs.rs` `send_table`](../crates/kinesin-runtime/src/jobs/outputs.rs)
   only covers job-bound tables; the `/preview` route and any sidecar-less path
   still spawn Python. **Read parquet head+schema natively in Rust** (`arrow` +
   `parquet` crates — lighter than pulling in the `polars` crate just for a head).
@@ -225,7 +225,7 @@ Original analysis below.
   *Highest-payoff piece; it re-pays the cold-import cost on a routine path.*
 - **Uploads buffer the whole file in RAM.** `upload_handler` does
   `field.bytes().await` (up to 512 MiB) before writing
-  ([`server.rs`](../crates/kinesin-runtime/src/server.rs)), against the spirit of
+  ([`http/files.rs`](../crates/kinesin-runtime/src/http/files.rs)), against the spirit of
   memory Rule 2. Stream `field.chunk()` straight to disk.
 - **File serving reads whole files into a `Vec`.** `serve_file` uses
   `tokio::fs::read`; use `tower-http`'s `ServeFile` / `Body::from_stream`
@@ -253,7 +253,7 @@ Suggested order for what's next: **#12 (CI protects everything else) → #9 →
 **Pain:** the codebase now has real test coverage (Rust unit tests, the Python
 suite, the TPP integration test) and **nothing runs it** — no `.github/workflows`
 exists. Worse, the one test covering real polars-parquet compatibility
-([`preview.rs` `reads_polars_written_parquet`](../crates/kinesin-runtime/src/preview.rs))
+([`artifacts/parquet/tests.rs` `reads_polars_written_parquet`](../crates/kinesin-runtime/src/artifacts/parquet/tests.rs))
 is `#[ignore]`d behind a `KINESIN_TEST_PARQUET` env var pointing at an
 uncommitted, undocumented fixture — it can only ever run on the machine where it
 was written, while the roadmap advertises the compatibility it checks as
@@ -272,7 +272,7 @@ Python for csv/ipc), and they **already drifted**: `preview.py` emitted bare
 the dual-contract structure that produced the bug is still standing.
 
 **Add:** the `arrow` crate already reads CSV and IPC; extend
-[`preview.rs`](../crates/kinesin-runtime/src/preview.rs) to cover them and delete
+[`artifacts/preview.rs`](../crates/kinesin-runtime/src/artifacts/preview.rs) to cover them and delete
 `python/kinesin/preview.py` entirely. Kills the last preview subprocess *and*
 the drift class structurally, instead of patching divergences as they're found.
 (Same shape as #11's zipjob removal.)
@@ -286,7 +286,7 @@ leaks a process and its memory indefinitely.
 
 **Add:** the forked child reports its PID as its first protocol line; on timeout
 the runtime (which already detects it in
-[`worker.rs` `run_via_socket`](../crates/kinesin-runtime/src/worker.rs)) sends
+[`workers/socket.rs`](../crates/kinesin-runtime/src/workers/socket.rs)) sends
 SIGKILL. Process exit is already the memory-reclamation mechanism — this just
 makes it enforceable.
 
@@ -294,7 +294,7 @@ makes it enforceable.
 
 **Pain:** `JobRecord` already tracks id/status/result/logs per job behind an
 `#[allow(dead_code)]` promising "a future /jobs endpoint"
-([`jobs.rs`](../crates/kinesin-runtime/src/jobs.rs)) — the data is collected and
+([`jobs/`](../crates/kinesin-runtime/src/jobs)) — the data is collected and
 unreachable.
 
 **Add:** serialize the records map as `GET /jobs`. It's also the natural
