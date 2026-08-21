@@ -15,15 +15,27 @@ cargo test                        # unit tests in kinesin-protocol, session/acti
 cargo test -p kinesin-runtime parquet   # one module's tests
 
 # Python layer
-uv sync                           # creates .venv with polars/pyarrow/pydantic + pytest
+uv sync --group examples          # .venv with polars/pyarrow/pydantic + pytest, plus
+                                  # scipy/matplotlib/pandas/plotly for examples/tpp
 PYTHONPATH=python .venv/bin/python -m pytest tests/                       # all tests
 PYTHONPATH=python .venv/bin/python -m pytest tests/test_kinesin.py::test_registration_spec_shape  # one test
 
 # Frontend (runtime serves the built output from frontend/dist)
 cd frontend && npm install && npm run build
+cd frontend && npm test           # vitest + happy-dom; src/**/*.test.tsx
+cd frontend && npx vitest run src/layout.test.ts   # one file
 
-# Run an example app end-to-end (dev)
+# Build a distributable wheel (Rust binary + Python package + frontend)
+make wheel                        # -> dist/kinesin-*.whl
+
+# Everything CI runs
+make test-all                     # cargo test + pytest (incl. TPP) + vitest
+make lint-all                     # clippy -D warnings + ruff + tsc --noEmit
+
+# Run an example app end-to-end (dev). Saves to any .py under the app's directory
+# re-register it and push a new UI tree; --no-reload turns that off.
 cargo run -p kinesin-runtime -- run examples/csv_analysis/ui.py
+cargo run -p kinesin-runtime -- run examples/widgets/ui.py    # every widget + container
 # open http://127.0.0.1:8000
 ```
 
@@ -33,13 +45,24 @@ Configuration comes from `kinesin.toml` (host/port, `max_workers`, job timeout/q
 
 Three layers, connected by JSON protocols (full details: `docs/architecture.md`, `docs/runtime-internals.md`, `docs/protocol.md`):
 
-- **Rust runtime** (`crates/kinesin-runtime/`) — axum/tokio server, organized by folder: `http/` (router in `mod.rs`, plus `upload.rs`, `files.rs`, `bundle.rs`, `websocket.rs`, `events.rs` — routes: `/upload`, `/preview`, `/file`, `/download`, `/bundle`, `/health`, `/ws`), `session/` (`mod.rs` session state, `actions.rs` resolves declarative actions), `jobs/` (`mod.rs` queue + semaphore, `runner.rs`/`sharded.rs` execution, `outputs.rs` widget dispatch, `records.rs` bounded record store), `workers/` (`mod.rs` + `process.rs`/`socket.rs` transports, `forkserver.rs` Linux-only warm-import fork server), `artifacts/` (`preview.rs`/`parquet.rs` native parquet preview with Python fallback for csv/ipc, `bundle.rs` native zip builder), `config/`.
+- **Rust runtime** (`crates/kinesin-runtime/`) — axum/tokio server, organized by folder: `http/` (router in `mod.rs`, plus `upload.rs`, `files.rs`, `bundle.rs`, `websocket.rs`, `events.rs` — routes: `/upload`, `/preview`, `/file`, `/download`, `/bundle`, `/health`, `/ws`), `session/` (`mod.rs` session state, `actions.rs` resolves declarative actions), `jobs/` (`mod.rs` queue + semaphore, `runner.rs`/`sharded.rs` execution, `outputs.rs` widget dispatch, `records.rs` bounded record store), `workers/` (`mod.rs` + `process.rs`/`socket.rs` transports, `forkserver.rs` Linux-only warm-import fork server), `artifacts/` (`preview.rs`/`parquet.rs` native parquet preview with Python fallback for csv/ipc, `bundle.rs` native zip builder), `config/`, `reload.rs` (mtime-poll watcher that re-runs registration on save).
 - **Python layer** (`python/kinesin/`) — `app.py`/`widgets.py`/`jobs.py` build an in-memory app description; `register.py` prints it as one AppSpec JSON; `worker.py` executes a job and streams JSON lines (`log`/`progress`/`completed`/`failed`) over stdout; `testing.py` is the headless harness.
-- **React frontend** (`frontend/`, Vite + TS) — connects to `/ws`, renders the node tree, shallow-merges `widget_update` patches. One component per widget kind in `frontend/src/widgets/`. Styling comes from `@kinesin/design` (`design/tokens.css`, CSS custom properties, light + dark).
+- **Tests** — `cargo test` (protocol, session actions, artifacts; the parquet
+  compatibility test reads the committed `tests/fixtures/polars_written.parquet`),
+  `pytest tests/` + `examples/tpp/test_tpp.py` (the Python layer and a real app through
+  the headless harness), and `npm test` in `frontend/` (vitest + happy-dom over the
+  markdown scanner, the layout marker→tree fold, and widget behaviour). All three run
+  in `.github/workflows/ci.yml`. **Frontend logic belongs under test** — the markdown
+  renderer once shipped an infinite loop that froze the tab on any link, because
+  nothing covered it.
+- **React frontend** (`frontend/`, Vite + TS) — connects to `/ws`, renders the node tree, shallow-merges `widget_update` patches. One component per widget kind in `frontend/src/widgets/`. Layout containers
+(`group`/`columns`/`tabs`/`sidebar`) arrive as balanced `<kind>_start`/`<kind>_end`
+marker nodes in the flat list; `frontend/src/layout.ts` folds them into a tree before
+rendering, and `CONTAINERS` there is the one place a new container is registered. Styling comes from `@kinesin/design` (`design/tokens.css`, CSS custom properties, light + dark).
 
 ### Key mechanisms
 
-- **Registration pass**: Rust can't run Python in-process, so `kinesin run ui.py` spawns `python -m kinesin.register ui.py` once, which imports the UI file and prints the AppSpec (UI tree + actions + job catalog + bindings). Actions are declarative data, not closures — the runtime executes them itself; there is no Python in the request path. A job's `module_file` is the file where the function is *defined*, so heavy compute can live outside `ui.py`.
+- **Registration pass**: Rust can't run Python in-process, so `kinesin run ui.py` spawns `python -m kinesin.register ui.py` (once at startup, and again on every source save — see `reload.rs`), which imports the UI file and prints the AppSpec (UI tree + actions + job catalog + bindings). Actions are declarative data, not closures — the runtime executes them itself; there is no Python in the request path. `AppState.spec` is an `RwLock<Arc<AppSpec>>` because of reload: take one `Arc` per operation rather than calling `state.spec()` repeatedly, so a swap can't tear a request. A job's `module_file` is the file where the function is *defined*, so heavy compute can live outside `ui.py`.
 - **Job lifecycle**: submit → queued → running (worker streams stdout lines) → completed/failed. On completion the runtime drives each bound output widget by its view (`result_preview`, `plot:<name>`, `plotly:<name>`, `table:<name>`, `gallery:<name>`, `download:<name>`).
 - **Parallel jobs**: `@app.job(parallel=True)` fans out as `min(max_workers, cores)` shard workers. `job.map(items, fn, into=)` processes `items[shard::num_shards]`; `job.primary(fn)` runs on shard 0 only; shards write artifacts into a shared directory and the runtime merges by listing it — the filesystem is the merge.
 - **Dataframe-native outputs**: `job.result(df)` / `job.table(name, df)` write parquet; the runtime previews the first 100 rows natively in Rust.
@@ -54,5 +77,9 @@ Prefer `kinesin.testing.run_app(ui_path, inputs={...}, shards=N)` for job/regres
 
 ## Scope notes
 
+- **Two deployment shapes.** A source checkout and an installed wheel resolve the
+  interpreter, `PYTHONPATH`, and the frontend directory differently (`config/mod.rs`);
+  every Python spawn goes through `Config::python_command()` so the two stay in step.
+  Changing how Python is launched means changing that one method, not four call sites.
 - This is a deliberate **single-tenant prototype**: no auth, no fair-share scheduling, in-memory queue, file routes scoped only to the project root. These gaps are documented in `docs/architecture.md#limitations` and `docs/roadmap.md` — don't "fix" them in passing, and don't build on assumptions of multi-tenancy.
 - The `docs/` directory is maintained deliberately and per-module; when changing behavior, update the matching doc.

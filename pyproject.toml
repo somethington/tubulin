@@ -11,15 +11,27 @@ dependencies = [
     "pydantic>=2",
 ]
 
+# maturin, not hatchling: the wheel has to carry the compiled `kinesin` binary as well
+# as the Python package, so that `pip install kinesin` gives you a working `kinesin run`
+# with no Rust toolchain. `bindings = "bin"` packages the Cargo [[bin]] target as a
+# console entry point.
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
 
-[tool.hatch.build.targets.wheel]
-packages = ["python/kinesin"]
+[tool.maturin]
+manifest-path = "crates/kinesin-runtime/Cargo.toml"
+bindings = "bin"
+python-source = "python"
+# The built frontend is staged into python/kinesin/_frontend by `make wheel`; the
+# runtime finds it there when it can't see a source checkout (see config/mod.rs).
+include = [{ path = "python/kinesin/_frontend/**/*", format = "wheel" }]
 
 [tool.uv]
 package = true
 
 [dependency-groups]
 dev = ["pytest>=8"]
+# Not framework dependencies — only `examples/tpp` needs these. Kept out of the
+# runtime floor (see roadmap #16) and installed with `uv sync --group examples`.
+examples = ["scipy>=1.11", "matplotlib>=3.8", "pandas>=2", "plotly>=5"]

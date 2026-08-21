@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import polars as pl
+import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 ENV = {**os.environ, "PYTHONPATH": str(REPO / "python")}
@@ -173,3 +174,97 @@ def test_preview_returns_first_rows(tmp_path):
     assert len(data["rows"]) == 100
     assert data["total_rows"] == 250
     assert data["truncated"] is True
+
+
+def test_text_and_choice_widgets_spec():
+    """The Tier-0 input widgets: free text, multi-choice, and rich text."""
+    from kinesin import App
+
+    app = App("inputs")
+    app.markdown(
+        """
+        ## Heading
+        Some **bold** prose.
+        """
+    )
+    name = app.text_input("Sample name", default="run-1", placeholder="e.g. HeLa")
+    notes = app.text_area("Accessions", rows=6)
+    gate = app.checkbox("Filter", default=True)
+    conds = app.multiselect(
+        "Conditions", ["37C", "42C", "47C"], default=["47C", "37C"], enabled_when=gate
+    )
+
+    nodes = {n["id"]: n for n in app.to_spec()["nodes"]}
+
+    # markdown is dedented at registration, so an indented triple-quoted string works.
+    md = nodes["markdown_1"]["props"]["value"]
+    assert md.startswith("## Heading")
+    assert "**bold**" in md and "\n        " not in md
+
+    assert nodes[name.id]["props"] == {
+        "label": "Sample name",
+        "value": "run-1",
+        "placeholder": "e.g. HeLa",
+    }
+    assert nodes[notes.id]["props"]["rows"] == 6
+    assert nodes[notes.id]["props"]["value"] == ""
+
+    # The default is normalised to declaration order, not the order it was passed in.
+    assert nodes[conds.id]["props"]["value"] == ["37C", "47C"]
+    assert nodes[conds.id]["props"]["enabled_when"] == gate.id
+
+
+def test_multiselect_rejects_unknown_default():
+    from kinesin import App
+
+    app = App("inputs")
+    with pytest.raises(ValueError, match="don't exist"):
+        app.multiselect("Conditions", ["a", "b"], default=["a", "z"])
+
+
+def test_enabled_when_covers_every_scalar_input():
+    """A gate on one widget should be expressible on all of them, not just checkboxes."""
+    from kinesin import App
+
+    app = App("gates")
+    gate = app.checkbox("Advanced")
+    gated = [
+        app.slider("S", 0, 10, enabled_when=gate),
+        app.number("N", enabled_when=gate),
+        app.select("Sel", ["a", "b"], enabled_when=gate),
+        app.text_input("T", enabled_when=gate),
+        app.text_area("A", enabled_when=gate),
+    ]
+    nodes = {n["id"]: n for n in app.to_spec()["nodes"]}
+    assert all(nodes[w.id]["props"]["enabled_when"] == gate.id for w in gated)
+
+
+def test_text_and_list_values_reach_a_job(tmp_path):
+    """End-to-end through the headless harness: a job gets a str and a list[str]."""
+    from kinesin.testing import run_app
+
+    ui = tmp_path / "ui.py"
+    ui.write_text(
+        "import kinesin\n"
+        "app = kinesin.App('t')\n"
+        "name = app.text_input('Sample name', default='run-1')\n"
+        "conds = app.multiselect('Conditions', ['37C', '42C', '47C'], default=['37C'])\n"
+        "run = app.button('Go')\n"
+        "@app.job\n"
+        "def echo(name, conds, job):\n"
+        "    job.output('seen', job.write_text('seen', repr((name, conds))))\n"
+        "binding = echo.submit(name.value, conds.value)\n"
+        "run.on_click(binding)\n"
+    )
+
+    # Widget defaults flow through untouched.
+    r = run_app(str(ui), result_dir=str(tmp_path / "out1"))
+    assert Path(r.outputs["seen"]).read_text() == repr(("run-1", ["37C"]))
+
+    # ...and `inputs` overrides them by label, list value included.
+    r = run_app(
+        str(ui),
+        inputs={"Sample name": "HeLa", "Conditions": ["42C", "47C"]},
+        result_dir=str(tmp_path / "out2"),
+    )
+    assert Path(r.outputs["seen"]).read_text() == repr(("HeLa", ["42C", "47C"]))

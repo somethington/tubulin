@@ -3,7 +3,7 @@ import type { WidgetProps } from "../types";
 
 export function Slider({ node, send }: WidgetProps) {
   const { label, min, max, step } = node.props;
-  const [v, setV] = useState<number>(node.props.value);
+  const [v, setV] = useState<number>(node.props.value ?? node.props.min ?? 0);
   return (
     <div className="kin-input">
       <label>

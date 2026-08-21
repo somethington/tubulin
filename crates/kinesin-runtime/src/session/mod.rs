@@ -3,7 +3,7 @@ pub mod actions;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use kinesin_protocol::ServerMessage;
+use kinesin_protocol::{AppSpec, ServerMessage};
 use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -54,6 +54,30 @@ impl Session {
     pub fn send(&self, msg: ServerMessage) {
         let _ = self.tx.send(msg);
     }
+
+    /// Seed every input widget's default into state, so a job has values before the
+    /// user touches anything. Called on connect and again after a hot reload — the
+    /// browser re-seeds from the same spec, so both sides agree on the new defaults.
+    pub fn seed_inputs(&self, spec: &AppSpec) {
+        for node in &spec.nodes {
+            if !is_input_kind(&node.kind) {
+                continue;
+            }
+            if let Some(value) = node.props.get("value") {
+                let _ = self.set_state(format!("{}.value", node.id), value.clone());
+            }
+        }
+    }
+}
+
+/// Widget kinds whose `value` prop is a job argument. Grow this alongside `App`'s
+/// input widgets in `python/kinesin/app.py` — a kind missing here means a job sees no
+/// value until the user touches the widget.
+fn is_input_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "checkbox" | "slider" | "number" | "select" | "multiselect" | "text_input" | "text_area"
+    )
 }
 
 #[derive(Default)]
@@ -75,5 +99,10 @@ impl SessionManager {
 
     pub fn count(&self) -> usize {
         self.inner.lock().unwrap().len()
+    }
+
+    /// Every live session, as a snapshot — the lock is not held while callers send.
+    pub fn all(&self) -> Vec<Arc<Session>> {
+        self.inner.lock().unwrap().values().cloned().collect()
     }
 }

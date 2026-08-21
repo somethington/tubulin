@@ -268,6 +268,8 @@ a.kin-download {
   color: var(--text);
 }
 .kin-input input[type="number"],
+.kin-input input[type="text"],
+.kin-input textarea,
 .kin-input select {
   background: var(--bg);
   color: var(--text);
@@ -279,9 +281,20 @@ a.kin-download {
   max-width: 360px;
 }
 .kin-input input[type="number"]:focus,
+.kin-input input[type="text"]:focus,
+.kin-input textarea:focus,
 .kin-input select:focus {
   outline: none;
   border-color: var(--primary);
+}
+.kin-input textarea {
+  max-width: 640px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.kin-input input::placeholder,
+.kin-input textarea::placeholder {
+  color: var(--faint);
 }
 .kin-input input[type="range"] {
   accent-color: var(--primary);
@@ -507,4 +520,249 @@ a.kin-download {
   color: var(--error);
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+/* ---- multiselect ---- */
+.kin-multiselect label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.kin-ms-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.kin-ms-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 360px;
+}
+.kin-ms-bar button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.kin-ms-bar button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.kin-ms-filter {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px 8px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+}
+.kin-ms-filter:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.kin-ms-list {
+  max-width: 360px;
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  padding: 6px 10px;
+}
+.kin-ms-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+.kin-ms-item input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* ---- markdown ---- */
+.kin-md {
+  font-size: 16px;
+  color: var(--text);
+  max-width: 72ch;
+}
+.kin-md > *:first-child {
+  margin-top: 0;
+}
+.kin-md > *:last-child {
+  margin-bottom: 0;
+}
+.kin-md-p {
+  margin: 0 0 12px;
+}
+.kin-md-h {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 22px 0 10px;
+}
+h1.kin-md-h {
+  font-size: 26px;
+}
+h2.kin-md-h {
+  font-size: 21px;
+}
+h3.kin-md-h {
+  font-size: 18px;
+}
+h4.kin-md-h,
+h5.kin-md-h,
+h6.kin-md-h {
+  font-size: 16px;
+}
+.kin-md-list {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+.kin-md-list li {
+  margin: 3px 0;
+}
+.kin-md a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.kin-md-code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+.kin-md-pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+}
+.kin-md-pre code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.kin-md-quote {
+  margin: 0 0 12px;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+.kin-md-hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+/* ---- layout containers (app.columns / app.tabs / app.sidebar) ---- */
+.kin-columns {
+  display: grid;
+  gap: 18px 26px;
+  margin-bottom: 18px;
+  align-items: start;
+}
+.kin-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.kin-column > .block {
+  margin-bottom: 0;
+}
+/* Stack rather than squeeze: a 40px-wide slider helps nobody. */
+@media (max-width: 760px) {
+  .kin-columns {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.kin-tabs {
+  margin-bottom: 18px;
+}
+.kin-tablist {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.kin-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 8px 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.kin-tab:hover {
+  color: var(--text);
+}
+.kin-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.kin-tabpanel.hidden {
+  display: none;
+}
+.kin-tabpanel > .block:last-child {
+  margin-bottom: 0;
+}
+
+/* sidebar-declared widgets: same widgets, tighter column */
+.side-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.side-body .block {
+  margin-bottom: 0;
+}
+.side-body .kin-input input[type="number"],
+.side-body .kin-input input[type="text"],
+.side-body .kin-input textarea,
+.side-body .kin-input select,
+.side-body .kin-input input[type="range"],
+.side-body .kin-ms-bar,
+.side-body .kin-ms-list {
+  max-width: 100%;
+}
+.side-body .kin-md {
+  font-size: 14px;
+}
+.side-body .kin-md-h {
+  margin: 4px 0 6px;
+}
+.side-body h3.kin-md-h {
+  font-size: 15px;
+}
+.side-body .kin-group {
+  margin-bottom: 0;
 }

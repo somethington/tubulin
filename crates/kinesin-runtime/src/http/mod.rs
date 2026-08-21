@@ -69,7 +69,7 @@ async fn ws_handler(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) ->
 async fn health_handler(State(state): State<Arc<AppState>>) -> Json<Value> {
     Json(json!({
         "status": "ok",
-        "app": state.spec.title,
+        "app": state.spec().title,
         "sessions": state.sessions.count(),
     }))
 }

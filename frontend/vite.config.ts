@@ -1,4 +1,5 @@
-import { defineConfig } from "vite";
+/// <reference types="vitest" />
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 // In dev (`npm run dev`) Vite serves the UI and proxies API/WS calls to the Rust
@@ -16,5 +17,15 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+  },
+  // `npm test`. Unit tests live next to what they cover, as *.test.ts(x).
+  test: {
+    environment: "happy-dom",
+    include: ["src/**/*.test.{ts,tsx}"],
+    // A parser that stops making progress would pin the worker: a synchronous
+    // infinite loop cannot be interrupted by testTimeout. The scanners carry their
+    // own progress budgets (see Markdown.tsx); this bounds everything else.
+    testTimeout: 5000,
+    hookTimeout: 5000,
   },
 });

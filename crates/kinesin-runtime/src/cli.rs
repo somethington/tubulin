@@ -6,6 +6,8 @@ pub struct RunArgs {
     pub ui_path: PathBuf,
     pub port: Option<u16>,
     pub config: Option<PathBuf>,
+    /// Re-register the app when its `.py` sources change. On unless `--no-reload`.
+    pub reload: bool,
 }
 
 pub enum Command {
@@ -15,7 +17,7 @@ pub enum Command {
 const USAGE: &str = "kinesin — Python-first scientific app framework
 
 USAGE:
-    kinesin run <ui.py> [--port <PORT>] [--config <FILE>]
+    kinesin run <ui.py> [--port <PORT>] [--config <FILE>] [--no-reload]
 
 ARGS:
     <ui.py>            Python file declaring the app
@@ -23,6 +25,7 @@ ARGS:
 OPTIONS:
     --port <PORT>      Override the HTTP port (default 8000 / kinesin.toml)
     --config <FILE>    Path to a kinesin.toml (default: ./kinesin.toml)
+    --no-reload        Don't re-register the app when its .py files change
     -h, --help         Print this help
 ";
 
@@ -34,6 +37,7 @@ pub fn parse() -> Result<Command, String> {
             let mut ui_path: Option<PathBuf> = None;
             let mut port: Option<u16> = None;
             let mut config: Option<PathBuf> = None;
+            let mut reload = true;
             while let Some(arg) = args.next() {
                 match arg.as_str() {
                     "--port" => {
@@ -45,6 +49,7 @@ pub fn parse() -> Result<Command, String> {
                             args.next().ok_or("--config requires a value")?,
                         ));
                     }
+                    "--no-reload" => reload = false,
                     "-h" | "--help" => return Err(USAGE.to_string()),
                     other if other.starts_with('-') => {
                         return Err(format!("unknown option: {other}\n\n{USAGE}"));
@@ -57,6 +62,7 @@ pub fn parse() -> Result<Command, String> {
                 ui_path,
                 port,
                 config,
+                reload,
             }))
         }
         "-h" | "--help" => Err(USAGE.to_string()),

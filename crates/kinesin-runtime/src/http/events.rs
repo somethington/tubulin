@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use kinesin_protocol::{ActionSpec, ClientMessage, ServerMessage};
+use kinesin_protocol::{ActionSpec, AppSpec, ClientMessage, ServerMessage};
 use serde_json::{json, Map, Value};
 use uuid::Uuid;
 
@@ -38,12 +38,15 @@ pub(super) fn handle_client_message(
         }
     }
 
-    if let Some(action) = state.spec.actions.get(&node_id) {
-        run_action(state, session, action);
+    // One spec for the whole handler: a hot reload mid-dispatch must not resolve the
+    // action against one version and the job catalogue against another.
+    let spec = state.spec();
+    if let Some(action) = spec.actions.get(&node_id) {
+        run_action(state, session, action, &spec);
     }
 }
 
-fn run_action(state: &Arc<AppState>, session: &Arc<Session>, action: &ActionSpec) {
+fn run_action(state: &Arc<AppState>, session: &Arc<Session>, action: &ActionSpec, spec: &AppSpec) {
     match action {
         ActionSpec::SetText { target, value } => {
             let mut props = Map::new();
@@ -58,7 +61,7 @@ fn run_action(state: &Arc<AppState>, session: &Arc<Session>, action: &ActionSpec
             args,
             result_slot,
         } => {
-            let Some(job_def) = state.spec.jobs.get(job).cloned() else {
+            let Some(job_def) = spec.jobs.get(job).cloned() else {
                 session.send(ServerMessage::Error {
                     message: format!("unknown job '{job}'"),
                 });
@@ -73,7 +76,7 @@ fn run_action(state: &Arc<AppState>, session: &Arc<Session>, action: &ActionSpec
             };
             let job_id = Uuid::new_v4().to_string();
             session.set_slot(result_slot.clone(), job_id.clone());
-            let sink = build_sink(&state.spec.bindings, result_slot, session);
+            let sink = build_sink(&spec.bindings, result_slot, session);
             if let Err(e) = state.jobs.submit(JobRequest {
                 job_id,
                 job_def,

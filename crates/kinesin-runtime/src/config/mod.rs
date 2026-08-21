@@ -20,8 +20,10 @@ pub struct Config {
     pub frontend_dir: PathBuf,
     /// Python interpreter used for registration, workers, and previews.
     pub python: String,
-    /// Workers' `PYTHONPATH` so `import kinesin` resolves.
-    pub pythonpath: PathBuf,
+    /// `PYTHONPATH` for spawned Python, so `import kinesin` resolves from a source
+    /// checkout. `None` when kinesin is installed — the package is already importable
+    /// from site-packages, and prepending a stray path could shadow it.
+    pub pythonpath: Option<PathBuf>,
 }
 
 impl Config {
@@ -51,18 +53,13 @@ impl Config {
             }
         };
 
-        let python = std::env::var("KINESIN_PYTHON").unwrap_or_else(|_| {
-            let venv = project_root.join(".venv/bin/python");
-            if venv.exists() {
-                venv.to_string_lossy().into_owned()
-            } else {
-                "python3".to_string()
-            }
-        });
+        let python = resolve_python(&project_root);
 
-        let frontend_dir = std::env::var("KINESIN_FRONTEND")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| project_root.join("frontend/dist"));
+        // A source checkout imports kinesin from `python/`; an installed one doesn't
+        // need PYTHONPATH at all.
+        let pythonpath = Some(project_root.join("python")).filter(|p| p.join("kinesin").is_dir());
+
+        let frontend_dir = resolve_frontend(&project_root, &python);
 
         // Port precedence: CLI --port > PORT env > kinesin.toml.
         let env_port = std::env::var("PORT")
@@ -80,9 +77,19 @@ impl Config {
             cache_dir: resolve(&raw.storage.cache_dir),
             frontend_dir,
             python,
-            pythonpath: project_root.join("python"),
+            pythonpath,
             project_root,
         })
+    }
+
+    /// A `python` invocation with this config's interpreter and import path applied.
+    /// Every Python spawn in the runtime goes through here so the two stay in step.
+    pub fn python_command(&self) -> tokio::process::Command {
+        let mut cmd = tokio::process::Command::new(&self.python);
+        if let Some(path) = &self.pythonpath {
+            cmd.env("PYTHONPATH", path);
+        }
+        cmd
     }
 
     /// Create the storage directories if they don't already exist.
@@ -93,6 +100,69 @@ impl Config {
         Ok(())
     }
 }
+
+/// Which interpreter to spawn.
+///
+/// The installed case is the interesting one: `pip install kinesin` puts the `kinesin`
+/// binary in the environment's `bin/` alongside its `python`, so the interpreter that
+/// has kinesin importable is the one sitting next to this executable. Preferring it
+/// over bare `python3` is what makes an installed kinesin work inside a venv without
+/// the venv being activated.
+fn resolve_python(project_root: &Path) -> String {
+    if let Ok(explicit) = std::env::var("KINESIN_PYTHON") {
+        return explicit;
+    }
+    if let Some(sibling) = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join(PYTHON_EXE)))
+        .filter(|candidate| candidate.exists())
+    {
+        return sibling.to_string_lossy().into_owned();
+    }
+    let venv = project_root.join(VENV_PYTHON);
+    if venv.exists() {
+        return venv.to_string_lossy().into_owned();
+    }
+    "python3".to_string()
+}
+
+/// Where the built frontend lives: an explicit override, a source checkout's
+/// `frontend/dist`, or the copy packaged inside the installed `kinesin` package.
+fn resolve_frontend(project_root: &Path, python: &str) -> PathBuf {
+    if let Ok(explicit) = std::env::var("KINESIN_FRONTEND") {
+        return PathBuf::from(explicit);
+    }
+    let in_tree = project_root.join("frontend/dist");
+    if in_tree.exists() {
+        return in_tree;
+    }
+    // Ask the interpreter where the package landed: the path to site-packages embeds
+    // the Python version, so it can't be derived from the executable's location.
+    packaged_frontend(python).unwrap_or(in_tree)
+}
+
+fn packaged_frontend(python: &str) -> Option<PathBuf> {
+    let out = std::process::Command::new(python)
+        .arg("-c")
+        .arg("import kinesin, os; print(os.path.join(os.path.dirname(kinesin.__file__), '_frontend'))")
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let path = PathBuf::from(String::from_utf8(out.stdout).ok()?.trim());
+    path.is_dir().then_some(path)
+}
+
+#[cfg(windows)]
+const PYTHON_EXE: &str = "python.exe";
+#[cfg(not(windows))]
+const PYTHON_EXE: &str = "python3";
+
+#[cfg(windows)]
+const VENV_PYTHON: &str = ".venv/Scripts/python.exe";
+#[cfg(not(windows))]
+const VENV_PYTHON: &str = ".venv/bin/python";
 
 /// `max_workers = 0` means auto: size the worker pool to the machine's cores.
 fn effective_workers(configured: usize) -> usize {

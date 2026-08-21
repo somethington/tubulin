@@ -18,21 +18,13 @@ pub(super) async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     info!(session = %session_id, total = state.sessions.count(), "session connected");
 
     // Seed input-widget defaults so jobs have values before any interaction.
-    for node in &state.spec.nodes {
-        if matches!(
-            node.kind.as_str(),
-            "checkbox" | "slider" | "number" | "select"
-        ) {
-            if let Some(value) = node.props.get("value") {
-                let _ = session.set_state(format!("{}.value", node.id), value.clone());
-            }
-        }
-    }
+    let spec = state.spec();
+    session.seed_inputs(&spec);
 
     session.send(ServerMessage::UiTree {
         session_id: session_id.clone(),
-        title: state.spec.title.clone(),
-        nodes: state.spec.nodes.clone(),
+        title: spec.title.clone(),
+        nodes: spec.nodes.clone(),
     });
 
     let (mut sink, mut stream) = socket.split();

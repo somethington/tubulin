@@ -302,6 +302,15 @@ def _coerce(raw: str) -> Any:
     low = raw.lower()
     if low in ("true", "false"):
         return low == "true"
+    # A JSON array is the unambiguous way to pass a multiselect from the CLI —
+    # splitting on commas would corrupt any free-text value containing one.
+    if raw.startswith("["):
+        import json
+
+        try:
+            return json.loads(raw)
+        except ValueError:
+            return raw
     try:
         return int(raw)
     except ValueError:

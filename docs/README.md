@@ -32,7 +32,7 @@ kinesin run ui.py     # → http://127.0.0.1:8000
 | [protocol.md](protocol.md) | The wire contract: browser↔runtime messages, the app spec, the worker line protocol, and the HTTP routes. |
 | [runtime-internals.md](runtime-internals.md) | The Rust runtime: crate/module map, key types, how a job runs, and the optional fork-server. |
 | [configuration.md](configuration.md) | `kinesin.toml` and the environment variables. |
-| [roadmap.md](roadmap.md) | Framework-improvement plan distilled from building TPP — what's shipped (test harness, dataframe outputs, fork-server) and what's next. |
+| [roadmap.md](roadmap.md) | Framework-improvement plan: the internal items distilled from building TPP, plus the tiered checklist for closing the Streamlit adoption gap. |
 | [mvp.md](mvp.md) | The original MVP scope and milestone map (historical). |
 
 The frontend's visual system (dependency-free CSS tokens, light + dark, a Plotly theme)

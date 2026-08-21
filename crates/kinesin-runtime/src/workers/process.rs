@@ -4,7 +4,6 @@ use std::time::Duration;
 use kinesin_protocol::{WorkerMessage, WorkerResult};
 use serde_json::Value;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::process::Command;
 
 use crate::config::Config;
 
@@ -14,10 +13,10 @@ pub(super) async fn run<F>(config: &Config, descriptor: &Value, on_msg: &mut F)
 where
     F: FnMut(WorkerMessage),
 {
-    let mut child = match Command::new(&config.python)
+    let mut child = match config
+        .python_command()
         .arg("-m")
         .arg("kinesin.worker")
-        .env("PYTHONPATH", &config.pythonpath)
         .env("KINESIN_WORKER", "1")
         .current_dir(&config.project_root)
         .stdin(Stdio::piped())

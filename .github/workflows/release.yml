@@ -1,0 +1,104 @@
+# Builds the platform wheels that make `pip install kinesin` work without a Rust
+# toolchain or node. Each wheel carries the compiled `kinesin` binary, the Python
+# package, and the built frontend (see `[tool.maturin]` in pyproject.toml).
+#
+# Publishing is manual on purpose: the workflow uploads wheels as artifacts, and the
+# `publish` job runs only for a tagged release with the PyPI environment configured.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  wheels:
+    name: wheel (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: macos-13, target: x86_64-apple-darwin }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+    steps:
+      - uses: actions/checkout@v4
+
+      # The frontend ships inside the wheel, so it must be built first and staged
+      # where `[tool.maturin] include` expects it — same steps as `make wheel`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: frontend
+      - run: cp -R frontend/dist python/kinesin/_frontend
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist --target ${{ matrix.target }}
+          manylinux: auto
+
+      # Prove the wheel actually runs before it can ever be published: install it into
+      # a clean environment and start an app with no KINESIN_* env set.
+      - name: smoke test the wheel
+        shell: bash
+        run: |
+          python3 -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install --upgrade pip
+          /tmp/smoke/bin/pip install dist/*.whl
+          mkdir -p /tmp/smokeapp
+          cp examples/widgets/ui.py /tmp/smokeapp/
+          cd /tmp/smokeapp
+          /tmp/smoke/bin/kinesin run ui.py --port 5599 --no-reload &
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:5599/health && break || sleep 1
+          done
+          curl -sf http://127.0.0.1:5599/health | tee health.json
+          grep -q '"status":"ok"' health.json
+          # The frontend must come from inside the wheel, not a source checkout.
+          curl -sf http://127.0.0.1:5599/ | grep -q '<div id="root">'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.target }}
+          path: dist/*.whl
+
+  sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist/*.tar.gz
+
+  publish:
+    name: publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [wheels, sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # trusted publishing; no API token stored in the repo
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

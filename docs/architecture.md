@@ -90,6 +90,31 @@ The `ui.py` / `compute.py` split: a job's `module_file` is the file where the fu
 is *defined* (captured via `func.__code__.co_filename`). So heavy job code can live in
 its own module; the worker imports *that*, not the lightweight UI file.
 
+### Hot reload
+
+The registration pass is cheap and self-contained, which makes re-running it the whole
+of hot reload. [`reload.rs`](../crates/kinesin-runtime/src/reload.rs) polls the mtimes
+of the `.py` files under the app's directory every 500 ms (skipping `__pycache__`,
+dotdirs and `node_modules`, bounded to 512 files); on a change it re-registers and
+swaps the result into `AppState`.
+
+- `AppState.spec` is an `RwLock<Arc<AppSpec>>`. Readers take an `Arc` clone and hold it
+  for a whole operation, so a reload landing mid-request can't resolve an action
+  against one version and the job catalogue against another.
+- **A failed registration changes nothing.** The previous spec keeps serving and the
+  error goes to every session as a `ServerMessage::Error`; a syntax error mid-edit is a
+  banner, not a blank page.
+- On success each session is re-seeded from the new spec and sent a fresh `ui_tree`.
+  The browser reseeds its own values from the same nodes, so both sides agree on the
+  new defaults.
+- **In-flight jobs are unaffected** — a job clones its `JobDef` at submit time, so it
+  finishes against the definition it started with.
+
+Polling rather than a filesystem-notify crate is deliberate: the watch set is a handful
+of files, `stat` is cheap, and mtime changes coalesce on their own (an editor's
+write-then-rename shows up as one change, not the event burst an inotify/FSEvents
+stream would need debouncing for).
+
 ## Request lifecycle (a button click)
 
 1. Browser sends `{"type":"event","node_id":"button_1","event":"click"}` over `/ws`.

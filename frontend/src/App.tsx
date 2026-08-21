@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { KinesinSocket } from "./websocket";
 import type { ServerMessage, Send, UiNode } from "./types";
+import { buildTree, partitionSidebar, type TreeNode } from "./layout";
 import { Text } from "./widgets/Text";
+import { Markdown } from "./widgets/Markdown";
 import { Button } from "./widgets/Button";
 import { FileUpload } from "./widgets/FileUpload";
 import { JobStatus } from "./widgets/JobStatus";
@@ -10,15 +13,22 @@ import { Checkbox } from "./widgets/Checkbox";
 import { Slider } from "./widgets/Slider";
 import { NumberInput } from "./widgets/NumberInput";
 import { Select } from "./widgets/Select";
+import { MultiSelect } from "./widgets/MultiSelect";
+import { TextInput } from "./widgets/TextInput";
+import { TextArea } from "./widgets/TextArea";
 import { ImagePlot } from "./widgets/ImagePlot";
 import { PlotlyChart } from "./widgets/PlotlyChart";
 import { Download } from "./widgets/Download";
 import { Gallery } from "./widgets/Gallery";
+import { Columns } from "./widgets/Columns";
+import { Tabs } from "./widgets/Tabs";
 
 function Widget({ node, send }: { node: UiNode; send: Send }) {
   switch (node.kind) {
     case "text":
       return <Text node={node} send={send} />;
+    case "markdown":
+      return <Markdown node={node} send={send} />;
     case "header":
       return <h2 className="kin-header">{node.props.value}</h2>;
     case "button":
@@ -37,6 +47,12 @@ function Widget({ node, send }: { node: UiNode; send: Send }) {
       return <NumberInput node={node} send={send} />;
     case "select":
       return <Select node={node} send={send} />;
+    case "multiselect":
+      return <MultiSelect node={node} send={send} />;
+    case "text_input":
+      return <TextInput node={node} send={send} />;
+    case "text_area":
+      return <TextArea node={node} send={send} />;
     case "image":
       return <ImagePlot node={node} send={send} />;
     case "plotly":
@@ -60,13 +76,11 @@ const noop: Send = () => {};
 function Group({
   node,
   items,
-  send,
-  values,
+  render,
 }: {
   node: UiNode;
-  items: UiNode[];
-  send: Send;
-  values: Record<string, any>;
+  items: TreeNode[];
+  render: (items: TreeNode[]) => ReactNode;
 }) {
   const collapsible = node.props.collapsible !== false;
   const [open, setOpen] = useState<boolean>(node.props.expanded !== false);
@@ -88,61 +102,52 @@ function Group({
       {/* Keep children mounted when collapsed (hide via CSS) so their state and
           values aren't lost on collapse → expand. */}
       <div className={`kin-group-body${open ? "" : " collapsed"}`}>
-        {renderNodes(items, send, values)}
+        {render(items)}
       </div>
     </section>
   );
 }
 
-// Flat node list → blocks, collapsing `group_start`…`group_end` spans into <Group>.
-// `values` holds current input values so a widget with `enabled_when` can disable
-// itself when its controller is falsy.
-function renderNodes(
-  nodes: UiNode[],
+/**
+ * Render a container tree (see `layout.ts`). `values` holds current input values so a
+ * widget with `enabled_when` can disable itself when its controller is falsy.
+ */
+export function renderTree(
+  items: TreeNode[],
   send: Send,
   values: Record<string, any>,
-): any[] {
-  const out: any[] = [];
-  let i = 0;
-  while (i < nodes.length) {
-    const n = nodes[i];
-    if (n.kind === "group_start") {
-      const items: UiNode[] = [];
-      let depth = 1;
-      i++;
-      while (i < nodes.length && depth > 0) {
-        if (nodes[i].kind === "group_start") depth++;
-        else if (nodes[i].kind === "group_end") {
-          depth--;
-          if (depth === 0) {
-            i++;
-            break;
-          }
-        }
-        items.push(nodes[i]);
-        i++;
+): ReactNode[] {
+  const render = (kids: TreeNode[]) => renderTree(kids, send, values);
+
+  return items.map(({ node, children }) => {
+    switch (node.kind) {
+      case "group_start":
+        return (
+          <Group key={node.id} node={node} items={children} render={render} />
+        );
+      case "columns_start":
+        return (
+          <Columns key={node.id} node={node} items={children} render={render} />
+        );
+      case "tabs_start":
+        return (
+          <Tabs key={node.id} node={node} items={children} render={render} />
+        );
+      default: {
+        const gate = node.props.enabled_when as string | undefined;
+        const disabled = gate ? !values[gate] : false;
+        return (
+          <div className={`block${disabled ? " disabled" : ""}`} key={node.id}>
+            <Widget node={node} send={disabled ? noop : send} />
+          </div>
+        );
       }
-      out.push(
-        <Group key={n.id} node={n} items={items} send={send} values={values} />,
-      );
-    } else if (n.kind === "group_end") {
-      i++; // stray end marker — skip
-    } else {
-      const gate = n.props.enabled_when as string | undefined;
-      const disabled = gate ? !values[gate] : false;
-      out.push(
-        <div className={`block${disabled ? " disabled" : ""}`} key={n.id}>
-          <Widget node={n} send={disabled ? noop : send} />
-        </div>,
-      );
-      i++;
     }
-  }
-  return out;
+  });
 }
 
 export function App() {
-  const [title, setTitle] = useState("TPP Solver");
+  const [title, setTitle] = useState("Kinesin");
   const [nodes, setNodes] = useState<UiNode[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +162,10 @@ export function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("kinesin-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
 
   useEffect(() => {
     const sock = new KinesinSocket(
@@ -199,16 +208,18 @@ export function App() {
     sockRef.current?.send({ type: "event", node_id: nodeId, event, payload });
   };
 
+  const { sidebar, main } = useMemo(
+    () => partitionSidebar(buildTree(nodes)),
+    [nodes],
+  );
+
   return (
     <div className="app">
       <aside className="sidebar">
         <img className="logo" src="/logo.svg" alt="logo" />
-        <div className="side-title">Navigation</div>
-        <nav className="side-nav">
-          <a className="active">Main App</a>
-          <a>GO Annotation</a>
-          <a>README</a>
-        </nav>
+        {sidebar.length > 0 && (
+          <div className="side-body">{renderTree(sidebar, send, values)}</div>
+        )}
         <div className="side-foot">
           <span className={`dot ${connected ? "ok" : "off"}`} />
           {connected ? "connected" : "offline"} · Kinesin runtime
@@ -233,7 +244,7 @@ export function App() {
         {nodes.length === 0 ? (
           <div className="muted">Waiting for the runtime…</div>
         ) : (
-          renderNodes(nodes, send, values)
+          renderTree(main, send, values)
         )}
       </main>
     </div>

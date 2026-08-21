@@ -2,7 +2,6 @@ use std::path::Path;
 use std::process::Stdio;
 
 use serde_json::{Map, Value};
-use tokio::process::Command;
 use tracing::warn;
 
 use crate::config::Config;
@@ -32,11 +31,11 @@ fn is_parquet(path: &str) -> bool {
 
 /// Fallback: run `python -m kinesin.preview <path>` and return its JSON object.
 async fn python_preview(config: &Config, path: &str) -> Result<Map<String, Value>, String> {
-    let output = Command::new(&config.python)
+    let output = config
+        .python_command()
         .arg("-m")
         .arg("kinesin.preview")
         .arg(path)
-        .env("PYTHONPATH", &config.pythonpath)
         .current_dir(&config.project_root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

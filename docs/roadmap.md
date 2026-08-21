@@ -243,26 +243,150 @@ worker spawns.
 
 ---
 
+## Tiers — closing the Streamlit adoption gap
+
+A separate lens from #1–#17, which are all *internal* (overhead and correctness the
+framework should absorb). Those are the hard parts, and they are largely built. The
+tiers below are the things whose absence stopped anyone getting far enough to *see*
+that work: a text box, two columns, bold text, `pip install`.
+
+The ordering principle is how much each unblocks. Tier 0 is what makes adoption
+possible at all; Tier 1 is what makes an app stop reading like a form; Tier 2 is what
+lets people other than the maintainer extend and deploy it.
+
+### Checklist
+
+**Tier 0 — adoption is impossible without these**
+
+- [x] **Installable wheels** — `pip install kinesin`, no Rust toolchain, no node (T0.4)
+- [ ] &nbsp;&nbsp;&nbsp;&nbsp;↳ *publish to PyPI* — needs a PyPI project + the `pypi` repo environment
+- [x] **Rich text** — `app.markdown` (T0.1)
+- [x] **Free text input** — `app.text_input`, `app.text_area` (T0.1)
+- [x] **Multiple choice** — `app.multiselect` (T0.1)
+- [x] **Layout** — `app.columns`, `app.tabs`, `app.sidebar` (T0.2)
+- [x] **Hot reload** — re-register on save, broken edits keep the last good app (T0.3)
+
+**Tier 1 — the app stops being a form**
+
+- [ ] **Multipage + query params** — `pages/`-style navigation and URL state, so a run is
+      a shareable link. Pairs with #9: a cached result keyed by inputs is what such a
+      URL points at.
+- [ ] **Derived widget props** — options/visibility computed in Rust from another
+      widget's value (`options_from(...)`, show/hide predicates). #7 is the narrow case;
+      the general gap is that nothing can happen between widgets without submitting a
+      job. This is the deliberate architectural difference from Streamlit's rerun model,
+      so the goal is *cheap* reactivity, not a rerun loop.
+- [ ] **Interactive dataframe** — sort, filter, column config; `table_preview` is a
+      static first-100-rows dump today.
+- [ ] **One-call charts** — `app.line_chart(df)` without hand-building Plotly JSON in a
+      job. Composes with #3 (performance-safe plotting defaults).
+- [ ] **Alerts and metrics** — `info`/`warning`/`error`/`success` boxes and KPI tiles.
+- [ ] **Multi-file upload** — TPP-shaped apps take a directory of files, not one.
+
+**Tier 2 — ecosystem**
+
+- [ ] **Custom-component API** — adding a widget means hand-editing four places today
+      (protocol crate, `protocol.py`, `types.ts`, a React component), so only a
+      maintainer can extend kinesin. #6's codegen is the prerequisite.
+- [ ] **Result cache behind shareable URLs** — #9 plus Tier 1's query params.
+- [ ] **Deployment story** — Docker/k8s guide, secrets, and basic auth. Note this
+      crosses the single-tenant line drawn in [architecture.md](architecture.md#limitations);
+      see "Out of scope by design" at the end of this file. It is a deliberate scope
+      decision, not a gap to close by default.
+
+### T0.1 Widget surface — ✅ done
+
+Six inputs became nine, plus rich text. `app.markdown` (a small CommonMark subset
+rendered straight to React nodes — no markdown dependency, no `dangerouslySetInnerHTML`),
+`app.text_input` / `app.text_area` (debounced: keystrokes stay local, one session write
+after idle or on blur), and `app.multiselect` (emits in *declaration* order, so a job
+can index into it deterministically). `enabled_when=` now works on every input, not just
+checkboxes.
+
+### T0.2 Layout containers — ✅ done
+
+`app.columns(...)`, `app.tabs(...)`, `app.sidebar()` — context managers alongside the
+existing `app.group(...)`. The AppSpec stays a **flat** node list with balanced
+`<kind>_start`/`<kind>_end` markers; [`frontend/src/layout.ts`](../frontend/src/layout.ts)
+folds them into a tree at render time, and `CONTAINERS` there is the single place a new
+container is registered. A widget's value therefore seeds and flows identically however
+deeply it is nested. Tabs keep hidden panels mounted, for the same reason a collapsed
+group does. Every widget and container in one runnable page:
+[`examples/widgets`](../examples/widgets/ui.py).
+
+### T0.3 Hot reload — ✅ done
+
+[`reload.rs`](../crates/kinesin-runtime/src/reload.rs) watches the app's `.py` files and
+re-runs the registration pass on save, pushing a fresh `ui_tree` to every open browser.
+The registration pass being cheap and self-contained is what makes this the *whole* of
+hot reload. A save that doesn't parse keeps the last good spec serving and surfaces the
+traceback as a banner — a half-typed edit never blanks the page. `--no-reload` opts out.
+See [architecture.md](architecture.md#hot-reload) for why it polls mtimes rather than
+taking a filesystem-notify dependency.
+
+### T0.4 Installable wheels — ✅ done (publishing not yet run)
+
+There was no `pip install kinesin`: the build backend produced a pure-Python wheel with
+no console entry point, so the binary only existed via `cargo run`. Now maturin
+(`bindings = "bin"`) builds one wheel carrying the compiled runtime, the Python package,
+and the built frontend. `make wheel` builds it locally;
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) builds Linux and
+macOS wheels on x86_64 and arm64, **smoke-tests each one** in a clean venv before it can
+be published, and publishes on a `v*` tag via trusted publishing.
+
+The supporting change is in [`config/mod.rs`](../crates/kinesin-runtime/src/config/mod.rs):
+a source checkout and an installed wheel resolve the interpreter, `PYTHONPATH` and the
+frontend directory differently, and every Python spawn now goes through
+`Config::python_command()` so the two can't drift. Verified end to end — wheel installed
+into a fresh venv outside the repo, `kinesin run` with no `KINESIN_*` env set: app
+registered, frontend served from inside the package, job ran to completion with tables
+and a Plotly figure.
+
+**Not done:** the package has never been published, so `pip install kinesin` does not
+work yet — it needs a PyPI project and the `pypi` environment configured on the repo.
+
+---
+
 Items #12–#17 came out of the #11 review pass and the dependency-footprint
 analysis: gaps the code itself exposed once the native I/O layer landed.
-Suggested order for what's next: **#12 (CI protects everything else) → #9 →
+Suggested order for what's next: **#12 (CI protects everything else, ✅ done) → #9 →
 #8 → #13**, with #3/#7 as small-item filler.
 
-## 12. CI + committed compat fixture — small effort, highest protection
+## 12. CI + committed compat fixture — ✅ done
 
-**Pain:** the codebase now has real test coverage (Rust unit tests, the Python
-suite, the TPP integration test) and **nothing runs it** — no `.github/workflows`
-exists. Worse, the one test covering real polars-parquet compatibility
-([`artifacts/parquet/tests.rs` `reads_polars_written_parquet`](../crates/kinesin-runtime/src/artifacts/parquet/tests.rs))
-is `#[ignore]`d behind a `KINESIN_TEST_PARQUET` env var pointing at an
-uncommitted, undocumented fixture — it can only ever run on the machine where it
-was written, while the roadmap advertises the compatibility it checks as
-"verified".
+**Pain:** the codebase had real test coverage (Rust unit tests, the Python suite, the
+TPP integration test) and **nothing ran it** — no `.github/workflows` existed. The one
+test covering real polars-parquet compatibility was `#[ignore]`d behind a
+`KINESIN_TEST_PARQUET` env var pointing at an uncommitted fixture, so it could only
+ever run on the machine where it was written.
 
-**Add:** commit the sub-KB polars-written zstd fixture under `tests/`, drop the
-env var and `#[ignore]`, and add a workflow running `cargo test` + `cargo clippy`
-+ `pytest` (including the TPP integration test). Everything this roadmap shipped
-was verified by hand at the time; nothing gates regressions.
+**Shipped:**
+- **[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)** — three jobs mirroring
+  the `make` targets: rust (`fmt --check`, `clippy -D warnings`, `cargo test --all`),
+  python (`ruff check`, the framework suite **and** the TPP integration test), frontend
+  (`tsc --noEmit`, `npm test`, `npm run build`).
+- **Committed parquet fixture** — [`tests/fixtures/polars_written.parquet`](../tests/fixtures/polars_written.parquet)
+  (1.4 KB, zstd) plus the script that regenerates it. `reads_polars_written_parquet`
+  dropped its `#[ignore]` and env var; the compatibility this roadmap advertised as
+  "verified" is now actually gated.
+- **Frontend test suite** — the gap the review didn't name: the React layer had *zero*
+  tests, and a hang-on-every-link bug in the markdown renderer shipped because of it
+  (a module-level `/g` regex whose `lastIndex` was reset by a recursive call, spinning
+  forever and freezing the tab). 59 tests under vitest + happy-dom now cover the
+  markdown scanner (links, malformed fences, href policy, HTML escaping), the layout
+  marker→tree fold (nesting, stray/unbalanced markers, sidebar hoisting), multiselect
+  ordering and filtering, the text-input debounce (including flush-on-unmount), and
+  container rendering (columns tracks, tab panels staying mounted, `enabled_when`
+  swallowing events).
+- **Declared the example-only deps** — `scipy`/`matplotlib`/`pandas`/`plotly` were
+  installed ad-hoc in the dev venv and declared nowhere, so CI could never have run the
+  TPP test. They are now an `examples` dependency group, deliberately outside the
+  framework's runtime floor (#16).
+
+> Both parsers now carry an explicit **progress budget**: a scan that fails to advance
+> bails out with a truncated render instead of spinning. That matters beyond the bug —
+> vitest cannot interrupt a synchronous infinite loop, so without it a regression
+> crashes the worker after 10s instead of failing an assertion in 360ms.
 
 ## 13. Native csv/ipc preview — delete `preview.py` — small-medium effort
 

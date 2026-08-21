@@ -13,6 +13,10 @@ __pycache__/
 node_modules/
 frontend/dist/
 
+# Wheel build staging (`make wheel` copies frontend/dist here) and output
+python/kinesin/_frontend/
+/dist/
+
 # Storage artifacts (keep the dirs, ignore contents)
 storage/uploads/*
 storage/results/*

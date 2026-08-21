@@ -4,6 +4,7 @@ mod config;
 mod http;
 mod jobs;
 mod registry;
+mod reload;
 mod session;
 mod state;
 mod workers;
@@ -58,5 +59,14 @@ async fn run(args: RunArgs) -> anyhow::Result<()> {
     );
 
     let state = Arc::new(AppState::new(config, spec));
+
+    // Watch the app's sources and re-register on save. `kinesin run` is the dev
+    // command, so this is on unless the caller opts out.
+    if args.reload {
+        let ui_path = args.ui_path.clone();
+        let watch_state = state.clone();
+        tokio::spawn(async move { reload::watch(watch_state, ui_path).await });
+    }
+
     http::serve(state).await
 }

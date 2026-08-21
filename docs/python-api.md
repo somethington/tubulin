@@ -21,7 +21,8 @@ Each returns a `Widget` handle (it has a stable `.id`).
 
 | Method | Renders |
 | --- | --- |
-| `app.text(value)` | a paragraph |
+| `app.text(value)` | a paragraph of plain text |
+| `app.markdown(value)` | rich text — headings, lists, links, `**bold**`, quotes, fenced code |
 | `app.header(value)` | a section header |
 | `app.button(label)` | a button; wire it with `.on_click(...)` |
 
@@ -29,7 +30,22 @@ Each returns a `Widget` handle (it has a stable `.id`).
 app.text("Upload a CSV, then run the analysis.")
 app.header("Options")
 run = app.button("Run")
+
+app.markdown("""
+    ## Melting curve fit
+
+    Uses a **sigmoid** with a plateau term; see [the method](https://example.com).
+
+    - `R²` filters poorly-fit curves
+    - imputation is deterministic given the seed
+""")           # indented triple-quoted strings are dedented for you
 ```
+
+The markdown renderer is a small CommonMark subset built into the frontend (no
+markdown dependency): ATX headings, fenced code, unordered/ordered lists,
+blockquotes, horizontal rules, paragraphs, and inline `` `code` ``, `**bold**`,
+`*italic*`, `~~strike~~` and `[links](url)`. Absolute links are restricted to
+http/https/mailto/ftp; relative links and fragments pass through.
 
 ### Collapsible groups (`app.group`)
 
@@ -43,6 +59,40 @@ with app.group("Data Visualization Options"):     # collapsible=True, expanded=T
     show_violin  = app.checkbox("Violin plot", default=True)
 ```
 
+### Layout containers (`app.columns` / `app.tabs` / `app.sidebar`)
+
+Three more context managers, all built the same way as `app.group`: the AppSpec stays
+a **flat** node list and layout is expressed as balanced `<kind>_start` / `<kind>_end`
+markers around a span of it, so a widget's value seeds and flows identically however
+deeply it is nested — only the rendering differs.
+
+```python
+with app.columns(2) as (left, right):          # or app.columns([2, 1]) for relative widths
+    with left:
+        app.slider("Min temperature", 30, 70)
+    with right:
+        app.slider("Max temperature", 30, 70)
+
+with app.tabs("Data", "Parameters") as (data, params):
+    with data:
+        app.file_upload("Measurements")
+    with params:
+        app.number("Seed", 7)
+
+with app.sidebar():                            # renders in the left rail
+    app.markdown("### Filters")
+    app.multiselect("Conditions", CONDITIONS)
+```
+
+- **Columns** take a count or a list of relative widths; they stack on a narrow
+  window, and a region you never enter still reserves its cell so the grid keeps its
+  shape.
+- **Tabs** keep hidden panels *mounted*, so switching tabs never resets an input or
+  drops a result that already rendered (the same reason a collapsed `app.group` keeps
+  its children).
+- **Sidebar** blocks concatenate, so a long parameter list can stay next to the code
+  it belongs to.
+
 ## Input widgets
 
 Each has a `.value` property — a **reference** you pass to a job. The runtime stores
@@ -54,7 +104,15 @@ the live value in session state and seeds the default on connect.
 | `app.slider(label, min, max, step=0.1, default=None)` | `float` |
 | `app.number(label, default=0)` | `int`/`float` |
 | `app.select(label, options, default=None)` | `str` |
+| `app.multiselect(label, options, default=None)` | `list[str]` |
+| `app.text_input(label, default="", placeholder="")` | `str` |
+| `app.text_area(label, default="", placeholder="", rows=4)` | `str` |
 | `app.file_upload(label)` | use `.path` (set when a file is uploaded) |
+
+`multiselect` hands the job the selected options in **declaration order**, not click
+order, so a job can index into the list deterministically. The two text widgets
+debounce in the browser: keystrokes stay local and one session write is sent after a
+short idle (or immediately on blur / Enter).
 
 ```python
 normalize = app.checkbox("Normalize", default=True)
@@ -65,7 +123,7 @@ upload = app.file_upload("Upload CSV")
 
 ### Conditional enable/disable (`enabled_when`)
 
-`app.checkbox(...)` and `app.button(...)` accept `enabled_when=<widget>` — the widget
+Every input widget and `app.button(...)` accepts `enabled_when=<widget>` — the widget
 greys out and goes non-interactive whenever the controller's value is falsy. The
 frontend tracks input values live, so it reacts as soon as the controller changes.
 

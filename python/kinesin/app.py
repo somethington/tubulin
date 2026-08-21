@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import sys
 from contextlib import contextmanager
+from textwrap import dedent
 from typing import Any, Dict, List, Optional, Union
 
 from .jobs import JobBinding, JobHandle
@@ -20,6 +21,38 @@ from .widgets import Widget
 # The most recently constructed App. The registration and worker passes read this
 # after importing the user's module.
 _ACTIVE_APP: Optional["App"] = None
+
+
+class _Region:
+    """One column or tab: a context manager bracketing its widgets with markers.
+
+    Layout stays a *flat* node list with balanced ``<kind>_start`` / ``<kind>_end``
+    markers (the same shape ``app.group`` uses), so a widget's value seeds and flows
+    identically however deeply it is nested — only the frontend's rendering differs.
+    """
+
+    def __init__(self, app: "App", kind: str, props: Dict[str, Any]):
+        self._app = app
+        self._kind = kind
+        self._props = props
+        self._used = False
+
+    def __enter__(self) -> "_Region":
+        if self._used:
+            raise RuntimeError(f"this {self._kind} has already been entered")
+        self._used = True
+        self._app._add(f"{self._kind}_start", self._props)
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._app._add(f"{self._kind}_end", {})
+
+    def _emit_if_unused(self) -> None:
+        """Reserve an empty cell for a region the app never entered."""
+        if not self._used:
+            self._used = True
+            self._app._add(f"{self._kind}_start", self._props)
+            self._app._add(f"{self._kind}_end", {})
 
 
 def set_active_app(app: "App") -> None:
@@ -67,6 +100,22 @@ class App:
     def text(self, value: str) -> Widget:
         return self._add("text", {"value": value})
 
+    def markdown(self, value: str) -> Widget:
+        """Rich text: headings, lists, links, ``**bold**``, ``` `code` ```, quotes, rules.
+
+        The renderer is a small CommonMark subset built into the frontend, so prose,
+        instructions and units render without an app author reaching for HTML::
+
+            app.markdown(\"\"\"
+            ## Melting curve fit
+
+            Uses a **sigmoid** with a plateau term; see [the method](https://…).
+            \"\"\")
+
+        Use ``app.text`` for a single unformatted line.
+        """
+        return self._add("markdown", {"value": dedent(str(value)).strip()})
+
     def header(self, value: str) -> Widget:
         return self._add("header", {"value": value})
 
@@ -96,6 +145,78 @@ class App:
             yield
         finally:
             self._add("group_end", {})
+
+    @contextmanager
+    def columns(self, spec: Union[int, List[float]]):
+        """Lay widgets out side by side::
+
+            with app.columns(2) as (left, right):
+                with left:
+                    app.slider("Min temperature", 30, 70)
+                with right:
+                    app.slider("Max temperature", 30, 70)
+
+        ``spec`` is either a column count or a list of **relative** widths, so
+        ``app.columns([2, 1])`` is a two-thirds / one-third split. Columns stack on a
+        narrow window. A region you never enter still reserves its cell.
+        """
+        widths = [1.0] * spec if isinstance(spec, int) else [float(w) for w in spec]
+        if not widths:
+            raise ValueError("app.columns needs at least one column")
+        self._add("columns_start", {"widths": widths})
+        regions = tuple(_Region(self, "column", {}) for _ in widths)
+        try:
+            yield regions
+        finally:
+            # An unused column still gets its marker pair, so the grid keeps its shape.
+            for region in regions:
+                region._emit_if_unused()
+            self._add("columns_end", {})
+
+    @contextmanager
+    def tabs(self, *labels: str):
+        """Put widgets on separate tabs::
+
+            with app.tabs("Data", "Parameters") as (data, params):
+                with data:
+                    app.file_upload("Measurements")
+                with params:
+                    app.number("Seed", 7)
+
+        Hidden panels stay mounted, so switching tabs never resets a widget or drops
+        a rendered result.
+        """
+        if len(labels) == 1 and isinstance(labels[0], (list, tuple)):
+            labels = tuple(labels[0])
+        names = [str(label) for label in labels]
+        if not names:
+            raise ValueError("app.tabs needs at least one label")
+        self._add("tabs_start", {"labels": names})
+        regions = tuple(_Region(self, "tab", {"label": name}) for name in names)
+        try:
+            yield regions
+        finally:
+            for region in regions:
+                region._emit_if_unused()
+            self._add("tabs_end", {})
+
+    @contextmanager
+    def sidebar(self):
+        """Render the widgets in the block into the app's left sidebar::
+
+            with app.sidebar():
+                app.markdown("### Filters")
+                app.multiselect("Conditions", CONDITIONS)
+
+        Several ``sidebar()`` blocks concatenate, so a long parameter list can stay
+        next to the code it belongs to. Their values behave exactly like main-column
+        widgets — only the placement differs.
+        """
+        self._add("sidebar_start", {})
+        try:
+            yield
+        finally:
+            self._add("sidebar_end", {})
 
     def button(self, label: str, enabled_when: Optional[Widget] = None) -> Widget:
         return self._gate(self._add("button", {"label": label}), enabled_when)
@@ -135,20 +256,95 @@ class App:
         max: float,
         step: float = 0.1,
         default: float = None,
+        enabled_when: Optional[Widget] = None,
     ) -> Widget:
         value = min if default is None else default
-        return self._add(
+        w = self._add(
             "slider",
             {"label": label, "min": min, "max": max, "step": step, "value": value},
         )
+        return self._gate(w, enabled_when)
 
-    def number(self, label: str, default: float = 0) -> Widget:
-        return self._add("number", {"label": label, "value": default})
+    def number(
+        self, label: str, default: float = 0, enabled_when: Optional[Widget] = None
+    ) -> Widget:
+        return self._gate(
+            self._add("number", {"label": label, "value": default}), enabled_when
+        )
 
-    def select(self, label: str, options: List[str], default: str = None) -> Widget:
+    def select(
+        self,
+        label: str,
+        options: List[str],
+        default: str = None,
+        enabled_when: Optional[Widget] = None,
+    ) -> Widget:
         opts = [str(o) for o in options]
         value = opts[0] if default is None else str(default)
-        return self._add("select", {"label": label, "options": opts, "value": value})
+        w = self._add("select", {"label": label, "options": opts, "value": value})
+        return self._gate(w, enabled_when)
+
+    def multiselect(
+        self,
+        label: str,
+        options: List[str],
+        default: Optional[List[str]] = None,
+        enabled_when: Optional[Widget] = None,
+    ) -> Widget:
+        """Choose any subset of ``options``; the job receives a ``list[str]``.
+
+        The value always arrives in **declaration order**, not click order, so a job
+        can index into it deterministically. ``default=None`` selects nothing;
+        pass ``default=options`` to start fully selected.
+        """
+        opts = [str(o) for o in options]
+        if default is None:
+            value: List[str] = []
+        else:
+            chosen = {str(d) for d in default}
+            unknown = chosen - set(opts)
+            if unknown:
+                raise ValueError(
+                    f"multiselect({label!r}) default has options that don't exist: "
+                    f"{sorted(unknown)}"
+                )
+            value = [o for o in opts if o in chosen]
+        w = self._add("multiselect", {"label": label, "options": opts, "value": value})
+        return self._gate(w, enabled_when)
+
+    def text_input(
+        self,
+        label: str,
+        default: str = "",
+        placeholder: str = "",
+        enabled_when: Optional[Widget] = None,
+    ) -> Widget:
+        """A single-line free-text field (sample name, prefix, accession, regex)."""
+        w = self._add(
+            "text_input",
+            {"label": label, "value": str(default), "placeholder": placeholder},
+        )
+        return self._gate(w, enabled_when)
+
+    def text_area(
+        self,
+        label: str,
+        default: str = "",
+        placeholder: str = "",
+        rows: int = 4,
+        enabled_when: Optional[Widget] = None,
+    ) -> Widget:
+        """A multi-line free-text field (a pasted id list, a note, a small config)."""
+        w = self._add(
+            "text_area",
+            {
+                "label": label,
+                "value": str(default),
+                "placeholder": placeholder,
+                "rows": int(rows),
+            },
+        )
+        return self._gate(w, enabled_when)
 
     # -- named outputs produced by a job -----------------------------------
     def image(self, job: JobBinding, name: str, caption: str = "") -> Widget:

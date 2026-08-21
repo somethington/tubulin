@@ -34,12 +34,20 @@ app.table_preview(job.result_path)   # first 100 rows of the result
 Hand a job a **dataframe** (`job.result(df)`, `job.table(name, df)`) and the framework
 writes the parquet and the preview for you — no manual paths.
 
-Run it:
+Install and run it:
 
 ```bash
+pip install kinesin
 kinesin run ui.py
 # open http://127.0.0.1:8000
 ```
+
+The wheel carries the compiled Rust runtime and the built frontend, so there is no Rust
+toolchain and no node install to do.
+
+Edit `ui.py` and save — the runtime re-registers the app and every open browser picks
+up the new UI. A save that doesn't parse keeps the last good version on screen and
+shows the traceback as a banner.
 
 ## Architecture
 
@@ -57,9 +65,13 @@ storage/{uploads,results,cache}
 ## What's here
 
 - **Declarative widgets in Python** — inputs (`checkbox`/`slider`/`number`/`select`/
-  `file_upload`), outputs (`table_preview`/`plot`/`gallery`/`download`/`job_status`),
-  **collapsible `app.group(...)` sections**, and **conditional `enabled_when=`** (a
-  widget greys out until its controller is on). The page renders in source order.
+  `multiselect`/`text_input`/`text_area`/`file_upload`), outputs
+  (`table_preview`/`plot`/`gallery`/`download`/`job_status`), rich text via
+  `app.markdown(...)`, and **conditional `enabled_when=`** (a widget greys out until
+  its controller is on).
+- **Layout without CSS** — `app.columns(...)`, `app.tabs(...)`, `app.sidebar()` and
+  collapsible `app.group(...)`, all context managers. The spec stays a flat node list,
+  so a widget's value behaves identically however deeply it is nested.
 - **Dataframe-native job outputs** — `job.result(df)` / `job.table(name, df)` write the
   parquet; the Rust runtime reads the 100-row preview natively (no subprocess); plus
   `job.write_csv` / `job.write_text` / `job.path` for bundle files.
@@ -69,6 +81,9 @@ storage/{uploads,results,cache}
   on-demand `.zip` download bundle.
 - **Disposable workers** — one process per job, memory reclaimed on exit. On Linux an
   optional **fork-server** amortizes the heavy import (one import, fork per job).
+- **Hot reload** — `kinesin run` watches the app's `.py` files and re-registers on
+  save; a broken edit surfaces as a banner instead of blanking the page
+  (`--no-reload` opts out).
 - **Headless test harness** — `kinesin.testing.run_app(...)` runs a job in-process and
   returns its outputs; no browser, no server. See [docs/testing.md](docs/testing.md).
 - **Design system** — `@kinesin/design`: dependency-free CSS tokens (light + dark) and a
@@ -85,10 +100,11 @@ Full docs are in [`docs/`](docs/README.md):
 - [protocol.md](docs/protocol.md) — the wire formats and HTTP routes
 - [runtime-internals.md](docs/runtime-internals.md) — the Rust runtime, module by module (incl. the fork-server)
 - [configuration.md](docs/configuration.md) — `kinesin.toml` and env vars
-- [roadmap.md](docs/roadmap.md) — framework-improvement plan distilled from building TPP (what's done, what's next)
+- [roadmap.md](docs/roadmap.md) — framework-improvement plan, plus the tiered checklist for closing the Streamlit adoption gap
 
-A real adapted app (Thermal Proteome Profiling, with parallel plotting of hundreds of
-curves) lives in [examples/tpp](examples/tpp/README.md).
+Every widget and container in one runnable page: [examples/widgets](examples/widgets/ui.py)
+(`kinesin run examples/widgets/ui.py`). A real adapted app (Thermal Proteome Profiling,
+with parallel plotting of hundreds of curves) lives in [examples/tpp](examples/tpp/README.md).
 
 ## Developing
 

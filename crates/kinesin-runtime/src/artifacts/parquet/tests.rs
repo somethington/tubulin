@@ -52,11 +52,16 @@ fn reads_head_with_nan_and_null_as_null() {
     let _ = std::fs::remove_file(&path);
 }
 
+/// Guards the contract against a *polars*-written file (zstd), which is the writer
+/// real job outputs go through — the other tests here use arrow's writer. The fixture
+/// is committed; regenerate it with `tests/fixtures/make_polars_parquet.py`.
 #[test]
-#[ignore]
 fn reads_polars_written_parquet() {
-    let path = std::env::var("KINESIN_TEST_PARQUET").expect("set KINESIN_TEST_PARQUET");
-    let p = read_preview(&path, 100).unwrap();
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tests/fixtures/polars_written.parquet"
+    );
+    let p = read_preview(path, 100).unwrap();
     assert_eq!(p["columns"], json!(["name", "score", "count", "flag"]));
     assert_eq!(p["total_rows"], json!(3));
     let rows = p["rows"].as_array().unwrap();

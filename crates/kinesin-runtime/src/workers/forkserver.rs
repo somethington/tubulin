@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{Child, Command};
+use tokio::process::Child;
 use tokio::sync::Mutex;
 
 use crate::config::Config;
@@ -74,12 +74,13 @@ impl ForkServerManager {
             .join(format!("forkserver-{:x}.sock", hasher.finish()));
         let _ = std::fs::remove_file(&socket);
 
-        let mut child = Command::new(&self.config.python)
+        let mut child = self
+            .config
+            .python_command()
             .arg("-m")
             .arg("kinesin.forkserver")
             .arg(module_file)
             .arg(&socket)
-            .env("PYTHONPATH", &self.config.pythonpath)
             .env("KINESIN_WORKER", "1")
             .current_dir(&self.config.project_root)
             .stdout(Stdio::piped())

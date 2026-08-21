@@ -50,14 +50,35 @@ and the user's module knows which pass it is running under.
 ## CLI
 
 ```
-kinesin run <ui.py> [--port <PORT>] [--config <FILE>]
+kinesin run <ui.py> [--port <PORT>] [--config <FILE>] [--no-reload]
 ```
+
+`kinesin run` **watches the app's `.py` files and re-registers on save** — edit `ui.py`
+(or a sibling module like `compute.py`), and every open browser gets the new UI tree
+without a restart. A save that doesn't parse leaves the last good app serving and
+surfaces the traceback as an error banner in the browser, so a half-typed edit never
+blanks the page. Pass `--no-reload` to turn the watcher off.
 
 During development (no installed binary on PATH) run it through cargo:
 
 ```bash
 cargo run -p kinesin-runtime -- run examples/tpp/ui.py --port 8137
 ```
+
+### How an installed kinesin finds its parts
+
+`pip install kinesin` puts the `kinesin` binary in the environment's `bin/`, next to
+that environment's `python`. The runtime resolves, in order:
+
+| | Source checkout | Installed wheel |
+| --- | --- | --- |
+| Interpreter | `.venv/bin/python`, else `python3` | the `python3` **next to the binary**, so a venv works unactivated |
+| `PYTHONPATH` | `<root>/python` | unset — `kinesin` is already importable from site-packages |
+| Frontend | `<root>/frontend/dist` | `kinesin/_frontend/` inside the installed package |
+
+`KINESIN_PYTHON` and `KINESIN_FRONTEND` override the first and last. Build a wheel
+locally with `make wheel` (builds the frontend, stages it into the package, runs
+maturin).
 
 ## What an app needs at runtime
 

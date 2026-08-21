@@ -2,7 +2,6 @@ use std::path::Path;
 
 use anyhow::{bail, Context};
 use kinesin_protocol::AppSpec;
-use tokio::process::Command;
 
 use crate::config::Config;
 
@@ -11,11 +10,11 @@ pub async fn register(config: &Config, ui_path: &Path) -> anyhow::Result<AppSpec
         bail!("UI file not found: {}", ui_path.display());
     }
 
-    let output = Command::new(&config.python)
+    let output = config
+        .python_command()
         .arg("-m")
         .arg("kinesin.register")
         .arg(ui_path)
-        .env("PYTHONPATH", &config.pythonpath)
         .env("KINESIN_REGISTER", "1")
         .current_dir(&config.project_root)
         .output()
