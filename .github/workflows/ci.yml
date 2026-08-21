@@ -36,7 +36,7 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --group examples
-      - run: uv run ruff check --select E9,F python tests examples
+      - run: uvx ruff check --select E9,F python tests examples
       # tests/ is the framework suite; test_tpp.py runs a real app end-to-end through
       # the headless harness (same execution core as a worker).
       - run: PYTHONPATH=python uv run pytest tests/ examples/tpp/test_tpp.py -q
