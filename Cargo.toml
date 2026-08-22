@@ -1,15 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/kinesin-protocol",
-    "crates/kinesin-runtime",
+    "crates/tubulin-protocol",
+    "crates/tubulin-runtime",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-authors = ["Kinesin contributors"]
+authors = ["Tubulin contributors"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

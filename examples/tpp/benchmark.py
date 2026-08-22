@@ -1,4 +1,4 @@
-"""Compare the incumbent Streamlit-style execution against the Kinesin-managed run.
+"""Compare the incumbent Streamlit-style execution against the Tubulin-managed run.
 
 Both modes run the *identical* tpp_solver science (same seeded imputation, same
 `scipy.curve_fit` sigmoidal fits, same Mann-Whitney + Benjamini-Hochberg). The only
@@ -7,7 +7,7 @@ difference is the execution model:
   * "streamlit"  — fits and **retains a matplotlib Figure per protein in a dict**,
                    exactly like `fit_and_plot_replicates`; everything stays in
                    process memory (the Streamlit session).
-  * "kinesin"    — fits without plotting, writes the result table to disk, keeps
+  * "tubulin"    — fits without plotting, writes the result table to disk, keeps
                    only that; in the real app the worker then exits.
 
 Each mode runs in its own subprocess so peak RSS is clean. We assert the scientific
@@ -87,7 +87,7 @@ def _spawn(mode: str) -> dict:
 def main() -> None:
     print("Running TPP analysis in both modes (identical science, different host)…\n")
     sl = _spawn("streamlit")
-    kn = _spawn("kinesin")
+    kn = _spawn("tubulin")
 
     # --- Metrics must be identical (correctness of the adaptation) -------------
     keys = [
@@ -104,7 +104,7 @@ def main() -> None:
         print(f"  {label:<28} {a:>22} {b:>22}")
 
     print("=" * 76)
-    print(f"  {'METRIC':<28} {'Streamlit-style':>22} {'Kinesin':>22}")
+    print(f"  {'METRIC':<28} {'Streamlit-style':>22} {'Tubulin':>22}")
     print("-" * 76)
     row("proteins in", sm["proteins_in"], km["proteins_in"])
     row("curves fit (R^2>=0.8)", sm["curves_fit"], km["curves_fit"])
@@ -130,7 +130,7 @@ def main() -> None:
         sl["py_peak_mb"] / kn["py_peak_mb"] if kn["py_peak_mb"] else float("inf")
     )
     print(
-        f"\nKinesin runs the same analysis holding {sm['figures_held']} fewer figures, "
+        f"\nTubulin runs the same analysis holding {sm['figures_held']} fewer figures, "
         f"with ~{heap_ratio:.1f}x less peak Python heap, and persists the result to disk\n"
         f"(only a 100-row preview is sent to the browser). In the real app the worker\n"
         f"then exits, returning all of that memory to the OS."

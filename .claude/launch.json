@@ -2,15 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "kinesin-app",
+      "name": "tubulin-app",
       "runtimeExecutable": "cargo",
-      "runtimeArgs": ["run", "-p", "kinesin-runtime", "--", "run", "examples/tpp/ui.py", "--port", "5577"],
+      "runtimeArgs": ["run", "-p", "tubulin-runtime", "--", "run", "examples/tpp/ui.py", "--port", "5577"],
       "port": 5577
     },
     {
       "name": "widget-gallery",
       "runtimeExecutable": "cargo",
-      "runtimeArgs": ["run", "-p", "kinesin-runtime", "--", "run", "examples/widgets/ui.py", "--port", "5578"],
+      "runtimeArgs": ["run", "-p", "tubulin-runtime", "--", "run", "examples/widgets/ui.py", "--port", "5578"],
       "port": 5578
     }
   ]

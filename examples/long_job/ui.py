@@ -1,12 +1,12 @@
 """Milestones 5-7: submit a long-running job, watch it stream progress and logs,
 then preview the small result it writes to disk.
 
-    kinesin run examples/long_job/ui.py
+    tubulin run examples/long_job/ui.py
 """
 
 import time
 
-from kinesin import App
+from tubulin import App
 
 app = App("Long Job Demo")
 

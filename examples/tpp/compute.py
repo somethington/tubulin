@@ -1,4 +1,4 @@
-"""The Kinesin job, written on the parallel primitive.
+"""The Tubulin job, written on the parallel primitive.
 
 `@app.job(parallel=True)` makes the runtime run this as N workers (it picks N). The
 job never touches shard indices: `job.map(...)` fans the per-protein plotting out
@@ -74,7 +74,7 @@ def tpp_analyze(
         full = tpp.run(
             tsv_path,
             meta_path,
-            mode="kinesin",
+            mode="tubulin",
             normalize=bool(normalize),
             selected_temp=sel,
             r2_threshold=float(r2_threshold),

@@ -8,11 +8,11 @@ install:
 
 # ------------- packaging -------------
 # One wheel carrying the Rust binary, the Python package, and the built frontend, so
-# `pip install kinesin` needs neither a Rust toolchain nor node.
+# `pip install tubulin` needs neither a Rust toolchain nor node.
 wheel:
 	cd frontend && npm ci && npm run build
-	rm -rf python/kinesin/_frontend
-	cp -R frontend/dist python/kinesin/_frontend
+	rm -rf python/tubulin/_frontend
+	cp -R frontend/dist python/tubulin/_frontend
 	uvx maturin build --release --out dist
 	@echo "built:" && ls -la dist/*.whl
 

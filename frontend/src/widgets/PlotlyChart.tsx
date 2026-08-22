@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import Plotly from "plotly.js-dist-min";
-// @ts-expect-error — plain-JS theme from the @kinesin/design package
-import { kinesinPlotlyLayout } from "@kinesin/design/plotly-theme.js";
+// @ts-expect-error — plain-JS theme from the @tubulin/design package
+import { tubulinPlotlyLayout } from "@tubulin/design/plotly-theme.js";
 import type { WidgetProps } from "../types";
 
 export function PlotlyChart({ node }: WidgetProps) {
@@ -10,10 +10,10 @@ export function PlotlyChart({ node }: WidgetProps) {
 
   useEffect(() => {
     if (ref.current && figure?.data) {
-      // Apply the Kinesin chart chrome (bg / fonts / grid / colorway) while keeping
+      // Apply the Tubulin chart chrome (bg / fonts / grid / colorway) while keeping
       // the figure's own titles, axis labels and ranges.
       const dark = document.documentElement.getAttribute("data-theme") === "dark";
-      const theme = kinesinPlotlyLayout(dark ? "dark" : "light");
+      const theme = tubulinPlotlyLayout(dark ? "dark" : "light");
       const fig = figure.layout ?? {};
       const layout = {
         ...theme,

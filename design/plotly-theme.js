@@ -1,15 +1,15 @@
 /* ============================================================
-   Kinesin — Plotly theme
+   Tubulin — Plotly theme
    Plotly is themed in the chart config, NOT via the app CSS.
-   Pass kinesinPlotlyLayout(theme) as the base `layout` and
-   KINESIN_COLORWAY as `colorway`.
+   Pass tubulinPlotlyLayout(theme) as the base `layout` and
+   TUBULIN_COLORWAY as `colorway`.
    ============================================================ */
 
-export const KINESIN_COLORWAY = [
+export const TUBULIN_COLORWAY = [
   '#e35d2b', '#2b7a9e', '#7c5cbf', '#1a8a4f', '#c2992b', '#6b7280'
 ];
 
-export function kinesinPlotlyLayout(theme = 'light') {
+export function tubulinPlotlyLayout(theme = 'light') {
   const dark = theme === 'dark';
   const text   = dark ? '#e8ebef' : '#16181d';
   const muted  = dark ? '#9aa3af' : '#5b6470';
@@ -25,7 +25,7 @@ export function kinesinPlotlyLayout(theme = 'light') {
   };
 
   return {
-    colorway: KINESIN_COLORWAY,
+    colorway: TUBULIN_COLORWAY,
     paper_bgcolor: paper,
     plot_bgcolor: paper,
     font: { family: 'IBM Plex Sans, sans-serif', size: 13, color: text },

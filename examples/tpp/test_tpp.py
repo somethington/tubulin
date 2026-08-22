@@ -1,4 +1,4 @@
-"""Example: testing a Kinesin app headlessly with ``kinesin.testing``.
+"""Example: testing a Tubulin app headlessly with ``tubulin.testing``.
 
 Run it directly (``python examples/tpp/test_tpp.py``) or under pytest. It runs the
 real job in-process — no browser, no runtime — and asserts on what it produced. Pass
@@ -6,7 +6,7 @@ real job in-process — no browser, no runtime — and asserts on what it produc
 test renders a handful of curves instead of all ~1200.
 """
 
-from kinesin.testing import run_app
+from tubulin.testing import run_app
 
 UI = "examples/tpp/ui.py"
 

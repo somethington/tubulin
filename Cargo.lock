@@ -966,37 +966,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kinesin-protocol"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "kinesin-runtime"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arrow",
- "axum",
- "futures",
- "glob",
- "kinesin-protocol",
- "parquet",
- "serde",
- "serde_json",
- "tokio",
- "toml",
- "tower 0.4.13",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "zip",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1981,6 +1950,37 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tubulin-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "tubulin-runtime"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arrow",
+ "axum",
+ "futures",
+ "glob",
+ "parquet",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml",
+ "tower 0.4.13",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "tubulin-protocol",
+ "uuid",
+ "zip",
 ]
 
 [[package]]

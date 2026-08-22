@@ -1,0 +1,30 @@
+[package]
+name = "tubulin-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "tubulin"
+path = "src/main.rs"
+
+[dependencies]
+tubulin-protocol = { path = "../tubulin-protocol" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+axum = { version = "0.7", features = ["ws", "multipart"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["fs", "trace", "compression-gzip", "compression-br"] }
+futures = "0.3"
+toml = "0.8"
+# Native result I/O — read parquet previews and build bundles without spawning Python.
+arrow = { version = "53", default-features = false }
+parquet = { version = "53", default-features = false, features = ["arrow", "snap", "zstd", "lz4", "brotli", "flate2"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+glob = "0.3"

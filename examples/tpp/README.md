@@ -1,8 +1,8 @@
-# TPP Solver, adapted to Kinesin
+# TPP Solver, adapted to Tubulin
 
 This adapts [`somethington/tpp_solver`](https://github.com/somethington/tpp_solver) —
 a Streamlit app for **Thermal Proteome Profiling** (sigmoidal melting-curve fitting +
-Mann-Whitney/Benjamini-Hochberg statistics) — to run as a managed Kinesin job, and
+Mann-Whitney/Benjamini-Hochberg statistics) — to run as a managed Tubulin job, and
 benchmarks the two execution models on the project's own example data.
 
 The point: **same science, different host.** The pipeline is **polars + numpy**
@@ -17,15 +17,15 @@ or duckdb. The data wrangling is polars; the numerics are numpy/scipy and are ve
 | File | Role |
 | --- | --- |
 | `tpp_pipeline.py` | Headless **polars + numpy** pipeline: filtering, seeded imputation, `curve_fit` sigmoid fits, Mann-Whitney + BH FDR. Self-contained (no pandas/tpp_solver). |
-| `app_def.py` | The shared Kinesin `App`. |
+| `app_def.py` | The shared Tubulin `App`. |
 | `compute.py` | The `@app.job` — runs the pipeline in a disposable worker, writes the stats table to disk. The "computational file" the runtime imports. |
-| `ui.py` | The Kinesin app: options (in two collapsible cards), run button, live status, result preview, Plotly plots, curve gallery, and download — wired to the bundled data. |
-| `benchmark.py` | Runs the analysis Streamlit-style vs Kinesin-style, asserts metrics are identical, reports the performance/memory delta. |
+| `ui.py` | The Tubulin app: options (in two collapsible cards), run button, live status, result preview, Plotly plots, curve gallery, and download — wired to the bundled data. |
+| `benchmark.py` | Runs the analysis Streamlit-style vs Tubulin-style, asserts metrics are identical, reports the performance/memory delta. |
 | `data/` | The upstream example data (`sample_data.tsv`, `sample_metadata.csv`). |
 
 ## Setup
 
-The pipeline is self-contained — just its scientific deps in the Kinesin venv (no
+The pipeline is self-contained — just its scientific deps in the Tubulin venv (no
 pandas, no tpp_solver, no duckdb):
 
 ```bash
@@ -41,7 +41,7 @@ leaving analysis time ~2 s (the numpy/scipy fitting dominates and is unchanged).
 ## Run the app
 
 ```bash
-cargo run -p kinesin-runtime -- run examples/tpp/ui.py
+cargo run -p tubulin-runtime -- run examples/tpp/ui.py
 # open the URL, adjust options if you like, click "Run TPP analysis" (no upload)
 ```
 
@@ -54,12 +54,12 @@ files, swap the literal paths in `ui.py` for `app.file_upload(...)` widgets.)
 
 The same options and outputs as upstream tpp_solver are exposed:
 
-**Options** (Kinesin input widgets): normalize curves (checkbox), reference
+**Options** (Tubulin input widgets): normalize curves (checkbox), reference
 temperature (select), R² threshold (slider), imputation seed (number), and a per-output
 toggle — grouped into two collapsible cards mirroring the upstream app ("Data
 Visualization Options" and "Shapiro-Wilk Normality Test"). The Shapiro-Wilk
 transformation choices use `enabled_when`: they grey out until "Perform Shapiro-Wilk
-Test" is on. Settings take effect when you click **Run** — Kinesin keeps widget values
+Test" is on. Settings take effect when you click **Run** — Tubulin keeps widget values
 in session state, so (unlike Streamlit) there's no separate "apply" step.
 
 **Outputs** (all produced by the job, rendered in the browser):
@@ -140,10 +140,10 @@ On a 14-core machine with `max_workers=4`, plotting all 1242 curves:
 | | Whole job, all plots |
 | --- | --- |
 | Streamlit (its own `mp.Pool`) | ~35s |
-| Kinesin, single worker | ~54s |
-| **Kinesin, 4 runtime shards** | **~20s** |
+| Tubulin, single worker | ~54s |
+| **Tubulin, 4 runtime shards** | **~20s** |
 
-Raise `max_workers` in `kinesin.toml` to use more cores. Per-worker peak memory stays
+Raise `max_workers` in `tubulin.toml` to use more cores. Per-worker peak memory stays
 ~276 MB regardless of shard count (each plots one figure at a time).
 
 > These numbers predate two later speedups: per-curve rendering was roughly **halved**
@@ -155,20 +155,20 @@ Raise `max_workers` in `kinesin.toml` to use more cores. Per-worker peak memory 
 ### Plotting hundreds of curves, lean
 
 The headline cost of the original is that it builds and **holds a matplotlib figure
-per protein in the session** (~640 figures, hundreds of MB). The Kinesin worker
+per protein in the session** (~640 figures, hundreds of MB). The Tubulin worker
 instead loops over all fitted proteins and writes each curve SVG to disk **one figure
 at a time** (fit → save → close), streaming progress, then exits. On this dataset:
 642 curves plotted, **peak worker memory ~276 MB**, all reclaimed when the worker
 exits. The gallery and download read the on-disk SVGs; nothing holds them all in RAM.
 
-The UI uses the Kinesin design system (`@kinesin/design`): dependency-free CSS tokens
+The UI uses the Tubulin design system (`@tubulin/design`): dependency-free CSS tokens
 with **light and dark** themes, a geometric type system (Space Grotesk / IBM Plex
 Sans / IBM Plex Mono), a warm orange accent, the lab logo + sidebar, and a themed
 Plotly layout. The charts are still built from tpp_solver's own trace/layout code →
 `fig.to_json()` → rendered by plotly.js. (It originally shipped as a Streamlit look-
 alike — coral `#FF4B4B`, Source Sans — later replaced by the design kit.)
 
-This exercised new Kinesin framework widgets: `checkbox`/`slider`/`number`/`select`
+This exercised new Tubulin framework widgets: `checkbox`/`slider`/`number`/`select`
 inputs (their `.value` feeds the job), an `image` widget that inlines an SVG, and a
 `plotly` widget that renders a figure JSON the job wrote to disk. The runtime stores
 input values in session state and the worker emits named `outputs` (paths) that drive
@@ -188,7 +188,7 @@ PYTHONPATH=examples/tpp .venv/bin/python examples/tpp/benchmark.py
 
 ```
 ============================================================================
-  METRIC                              Streamlit-style                Kinesin
+  METRIC                              Streamlit-style                Tubulin
 ----------------------------------------------------------------------------
   proteins in                                    1008                   1008
   curves fit (R^2>=0.8)                          1742                   1742
@@ -214,11 +214,11 @@ PYTHONPATH=examples/tpp .venv/bin/python examples/tpp/benchmark.py
   reach significance (min p-value 0.333, FDR 1.0).
 - **Memory is the differentiator.** The Streamlit pattern (`fit_and_plot_replicates`)
   builds and **retains a matplotlib `Figure` per protein** in a dict that lives in the
-  session — here, 642 figures and a **352.7 MB** Python heap. Kinesin runs the same
+  session — here, 642 figures and a **352.7 MB** Python heap. Tubulin runs the same
   fits without eager plotting, keeps only the result table (**7.8 MB heap, ~45× less**),
   writes it to disk, and sends a 100-row preview. Peak RSS drops ~4× (866 → 221 MB),
   and in the real app the worker process then **exits, returning all of it to the OS**.
-- **Time:** lower here because Kinesin skips rendering ~642 server-side figures the
+- **Time:** lower here because Tubulin skips rendering ~642 server-side figures the
   user may never open; plots become an on-demand browser concern.
 
 ### Honest caveats
@@ -226,7 +226,7 @@ PYTHONPATH=examples/tpp .venv/bin/python examples/tpp/benchmark.py
 - Both modes are run **single-threaded** to isolate the *memory* difference. The
   original Streamlit app parallelizes fitting with `multiprocessing.Pool`, so its
   wall-clock for fitting would be lower — but it still must hold every figure in
-  session memory, which is the cost Kinesin removes.
+  session memory, which is the cost Tubulin removes.
 - "Streamlit-style" here reproduces the incumbent's *memory lifecycle* (retain all
   figures in-process) using the real `process_protein_replicates`; it is not the
   Streamlit server itself.

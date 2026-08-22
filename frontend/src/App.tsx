@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { KinesinSocket } from "./websocket";
+import { TubulinSocket } from "./websocket";
 import type { ServerMessage, Send, UiNode } from "./types";
 import { buildTree, partitionSidebar, type TreeNode } from "./layout";
 import { Text } from "./widgets/Text";
@@ -147,20 +147,20 @@ export function renderTree(
 }
 
 export function App() {
-  const [title, setTitle] = useState("Kinesin");
+  const [title, setTitle] = useState("Tubulin");
   const [nodes, setNodes] = useState<UiNode[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Current input values, so widgets with `enabled_when` can react to their controller.
   const [values, setValues] = useState<Record<string, any>>({});
   const [theme, setTheme] = useState<"light" | "dark">(
-    () => (localStorage.getItem("kinesin-theme") as "light" | "dark") || "light",
+    () => (localStorage.getItem("tubulin-theme") as "light" | "dark") || "light",
   );
-  const sockRef = useRef<KinesinSocket | null>(null);
+  const sockRef = useRef<TubulinSocket | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("kinesin-theme", theme);
+    localStorage.setItem("tubulin-theme", theme);
   }, [theme]);
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export function App() {
   }, [title]);
 
   useEffect(() => {
-    const sock = new KinesinSocket(
+    const sock = new TubulinSocket(
       handleMessage,
       () => setConnected(true),
       () => setConnected(false),
@@ -222,7 +222,7 @@ export function App() {
         )}
         <div className="side-foot">
           <span className={`dot ${connected ? "ok" : "off"}`} />
-          {connected ? "connected" : "offline"} · Kinesin runtime
+          {connected ? "connected" : "offline"} · Tubulin runtime
           <button
             className="theme-toggle"
             onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}

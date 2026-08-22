@@ -1,12 +1,12 @@
-# Kinesin — Design Kit
+# Tubulin — Design Kit
 
-A dependency-free visual system for the Kinesin runtime (React 18 + TS frontend
+A dependency-free visual system for the Tubulin runtime (React 18 + TS frontend
 talking to the Rust runtime over WebSocket). Everything is driven by CSS custom
 properties, so the whole app restyles by editing tokens — light and dark.
 
 > Replaces the original Streamlit-clone look. New identity: geometric-technical
-> type, a warm orange accent, and a stepped mark evoking a kinesin motor walking
-> its track — motion, throughput, scale.
+> type, a warm orange accent, and a stepped mark evoking tubulin dimers assembling
+> into a microtubule — uniform parts, self-assembly, scale.
 
 ---
 
@@ -15,9 +15,9 @@ properties, so the whole app restyles by editing tokens — light and dark.
 | File | What it is |
 |------|------------|
 | `index.html` | Launcher — open this first |
-| `Kinesin Design System.dc.html` | Tokens, type scale, component states, all 14 widgets |
-| `Kinesin App.dc.html` | Full app mockup (sidebar + stacked blocks) with a live light↔dark toggle |
-| `Kinesin Landing.dc.html` | Marketing page for the framework |
+| `Tubulin Design System.dc.html` | Tokens, type scale, component states, all 14 widgets |
+| `Tubulin App.dc.html` | Full app mockup (sidebar + stacked blocks) with a live light↔dark toggle |
+| `Tubulin Landing.dc.html` | Marketing page for the framework |
 | `tokens.css` | The actual CSS variables — paste into / import from `styles.css` |
 | `plotly-theme.js` | Plotly layout + colorway (Plotly is themed in chart config, not CSS) |
 | `support.js` | Runtime for the `.dc.html` files — keep it beside them |
@@ -65,10 +65,10 @@ Source Sans 3 → a three-family system, all on Google Fonts (`@import` is in
 ### 4. Plotly
 ```js
 import Plotly from 'plotly.js-dist-min';
-import { kinesinPlotlyLayout, KINESIN_COLORWAY } from './plotly-theme.js';
+import { tubulinPlotlyLayout, TUBULIN_COLORWAY } from './plotly-theme.js';
 
 Plotly.newPlot(el, traces, {
-  ...kinesinPlotlyLayout(isDark ? 'dark' : 'light'),
+  ...tubulinPlotlyLayout(isDark ? 'dark' : 'light'),
 }, { displayModeBar: false });
 ```
 

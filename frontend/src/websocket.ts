@@ -1,7 +1,7 @@
 import type { EventMessage, ServerMessage } from "./types";
 
 /** Thin wrapper around the runtime WebSocket at /ws. */
-export class KinesinSocket {
+export class TubulinSocket {
   private ws: WebSocket;
 
   constructor(

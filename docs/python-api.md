@@ -1,17 +1,17 @@
 # Python API reference
 
-Everything an app author writes lives in `from kinesin import App`. There are three
+Everything an app author writes lives in `from tubulin import App`. There are three
 groups: the **`App`** (declare UI + register jobs), **widget handles & refs** (wire
 inputs to jobs and jobs to outputs), and the **`JobContext`** (`job`, available inside
 a running job).
 
 ```python
-from kinesin import App
+from tubulin import App
 app = App("My App")
 ```
 
-`App(title="Kinesin App")` — constructing it registers it as the active app so the
-registration pass can find it. Run with `kinesin run ui.py`.
+`App(title="Tubulin App")` — constructing it registers it as the active app so the
+registration pass can find it. Run with `tubulin run ui.py`.
 
 ---
 

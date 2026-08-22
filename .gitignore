@@ -14,7 +14,7 @@ node_modules/
 frontend/dist/
 
 # Wheel build staging (`make wheel` copies frontend/dist here) and output
-python/kinesin/_frontend/
+python/tubulin/_frontend/
 /dist/
 
 # Storage artifacts (keep the dirs, ignore contents)

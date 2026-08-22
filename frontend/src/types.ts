@@ -1,4 +1,4 @@
-// Wire types mirroring crates/kinesin-protocol/src/lib.rs. Keep in sync.
+// Wire types mirroring crates/tubulin-protocol/src/lib.rs. Keep in sync.
 
 export interface UiNode {
   id: string;

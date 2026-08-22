@@ -1,6 +1,6 @@
-"""TPP Solver, adapted to Kinesin — full options + plots, wired to bundled data.
+"""TPP Solver, adapted to Tubulin — full options + plots, wired to bundled data.
 
-    kinesin run examples/tpp/ui.py
+    tubulin run examples/tpp/ui.py
 
 Exposes the same knobs as the upstream Streamlit app (normalization + reference
 temperature, R^2 threshold, imputation seed, and toggles for each plot/analysis)
@@ -70,7 +70,7 @@ with app.group("Shapiro-Wilk Normality Test"):
         "Yeo-Johnson Transformation", default=True, enabled_when=perform_sw
     )
     # No "Apply" button here: the upstream Streamlit app needed one because it doesn't
-    # cache these settings (they reset on the next rerun). Kinesin persists widget values
+    # cache these settings (they reset on the next rerun). Tubulin persists widget values
     # in session state, so the choices simply take effect when "Run TPP analysis" runs.
 
 run = app.button("Run TPP analysis")

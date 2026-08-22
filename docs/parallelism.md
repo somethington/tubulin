@@ -105,7 +105,7 @@ The thing the runtime model adds is **where the pool lives**:
 - `mp.Pool` spawns its workers *inside one job's Python process*. The runtime sees one
   worker and cannot see or budget the pool's children. Two users → `2 × cpu_count()`
   processes, and `max_workers` is silently bypassed.
-- Kinesin's shards *are* the runtime's workers — counted by the semaphore, schedulable
+- Tubulin's shards *are* the runtime's workers — counted by the semaphore, schedulable
   against other jobs.
 
 So the value is **global resource arbitration**, which only matters when there is more
@@ -134,7 +134,7 @@ built:
 ## Build vs. ride
 
 Building a robust multi-tenant distributed scheduler is a large, perennial effort. A
-pragmatic path: keep Kinesin's defensible value — the Python-app-to-web-app DX, the
+pragmatic path: keep Tubulin's defensible value — the Python-app-to-web-app DX, the
 session/binding model, the disk-backed memory discipline — and **delegate execution to
 a proven backend**: Ray or Dask (Python scientific compute, cluster scheduling, fair
 allocation), Celery/Temporal (language-agnostic, durable queues), or K8s Jobs. The

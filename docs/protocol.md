@@ -1,9 +1,9 @@
 # Protocol & wire formats
 
 Three message families connect the pieces. The canonical Rust types live in
-[`crates/kinesin-protocol/src/`](../crates/kinesin-protocol/src) — `messages.rs`
+[`crates/tubulin-protocol/src/`](../crates/tubulin-protocol/src) — `messages.rs`
 (browser ↔ runtime), `spec.rs` (AppSpec), `worker.rs` (worker line protocol), all
-re-exported from `lib.rs`; Python (`python/kinesin/protocol.py`) and the frontend
+re-exported from `lib.rs`; Python (`python/tubulin/protocol.py`) and the frontend
 (`frontend/src/types.ts`) mirror them by hand.
 
 ---
@@ -42,7 +42,7 @@ The handler reacts to three events: `upload` (store `state["<node>.path"]`), `ch
 
 ## 2. The app spec (registration → runtime)
 
-`python -m kinesin.register ui.py` prints one `AppSpec`:
+`python -m tubulin.register ui.py` prints one `AppSpec`:
 
 ```jsonc
 {
@@ -97,7 +97,7 @@ The handler reacts to three events: `upload` (store `state["<node>.path"]`), `ch
 }
 ```
 
-The worker imports `module_file` (with `KINESIN_WORKER=1` so a UI module doesn't
+The worker imports `module_file` (with `TUBULIN_WORKER=1` so a UI module doesn't
 launch anything), finds `qualname`, builds a `JobContext`, and calls the function.
 
 ### Updates (worker → runtime stdout, **one JSON object per line**, tagged by `event`)

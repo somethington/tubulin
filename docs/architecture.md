@@ -1,6 +1,6 @@
 # Architecture
 
-Kinesin is a **Rust runtime** with a thin **Python authoring layer** and a **React
+Tubulin is a **Rust runtime** with a thin **Python authoring layer** and a **React
 frontend**. The guiding rule: *Rust is the source of truth and owns the lifecycle;
 Python is used only to describe the app once and to run jobs.*
 
@@ -9,15 +9,15 @@ Browser (React)
    │  HTTP: index/assets, POST /upload, GET /preview /file /download /bundle
    │  WebSocket: /ws  (one connection per browser session)
    ▼
-Rust runtime  — the `kinesin` binary, the source of truth
+Rust runtime  — the `tubulin` binary, the source of truth
    ├─ HTTP + WebSocket server (axum / tokio)
    ├─ AppSpec        : UI tree + actions + job catalog + bindings (loaded once)
    ├─ Session manager: per-socket state (ids/paths/small params only) + slots
    ├─ Job manager    : bounded queue + worker-pool semaphore + sharding
    └─ Worker manager : spawns Python workers, streams their stdout
-   │  spawn once :  python -m kinesin.register ui.py   → AppSpec JSON
-   │  spawn /job :  python -m kinesin.worker           → progress/log/result lines
-   │  spawn      :  python -m kinesin.preview <file>   → first 100 rows (csv/ipc only;
+   │  spawn once :  python -m tubulin.register ui.py   → AppSpec JSON
+   │  spawn /job :  python -m tubulin.worker           → progress/log/result lines
+   │  spawn      :  python -m tubulin.preview <file>   → first 100 rows (csv/ipc only;
    │                                                     parquet is read natively in Rust)
    ▼
 Python layer (a one-shot registration pass + disposable workers)
@@ -27,7 +27,7 @@ storage/{uploads,results,cache}   (the only place large data lives)
 
 ## Components
 
-### 1. The Python authoring layer (`python/kinesin/`)
+### 1. The Python authoring layer (`python/tubulin/`)
 
 A small library the app author imports. It has two jobs:
 
@@ -41,13 +41,13 @@ A small library the app author imports. It has two jobs:
 The author never starts a server, opens a socket, or touches HTTP. See
 [python-api.md](python-api.md).
 
-### 2. The Rust runtime (`crates/kinesin-runtime/`)
+### 2. The Rust runtime (`crates/tubulin-runtime/`)
 
-The `kinesin` binary. It serves the app, owns sessions and the job queue, spawns and
+The `tubulin` binary. It serves the app, owns sessions and the job queue, spawns and
 supervises Python workers, and streams updates to browsers. See
 [runtime-internals.md](runtime-internals.md).
 
-### 3. The protocol crate (`crates/kinesin-protocol/`)
+### 3. The protocol crate (`crates/tubulin-protocol/`)
 
 The serde types shared inside the runtime: the browser↔runtime messages, the
 `AppSpec` loaded from registration, and the worker line protocol. Python and the
@@ -61,8 +61,8 @@ charts render via `plotly.js`; tables/galleries fetch previews/images on demand.
 
 ## The registration pass — how Rust reads `ui.py`
 
-Rust cannot execute Python in-process, so `kinesin run ui.py` spawns a one-shot
-`python -m kinesin.register ui.py`. That process imports the UI file; the Python API
+Rust cannot execute Python in-process, so `tubulin run ui.py` spawns a one-shot
+`python -m tubulin.register ui.py`. That process imports the UI file; the Python API
 records everything into an `App`, then prints **one JSON document** (the `AppSpec`) to
 stdout and exits. The runtime deserializes it and serves from it forever after. Any
 stray stdout from the user's module is quarantined to stderr so the JSON stays clean.
@@ -93,7 +93,7 @@ its own module; the worker imports *that*, not the lightweight UI file.
 ### Hot reload
 
 The registration pass is cheap and self-contained, which makes re-running it the whole
-of hot reload. [`reload.rs`](../crates/kinesin-runtime/src/reload.rs) polls the mtimes
+of hot reload. [`reload.rs`](../crates/tubulin-runtime/src/reload.rs) polls the mtimes
 of the `.py` files under the app's directory every 500 ms (skipping `__pycache__`,
 dotdirs and `node_modules`, bounded to 512 files); on a change it re-registers and
 swaps the result into `AppState`.
@@ -136,7 +136,7 @@ submit ─► queued ─► running ─► (worker streams log/progress) ─► 
                                               report end-to-end ⏱ elapsed
 ```
 
-- The runtime spawns `python -m kinesin.worker`, writes a JSON **descriptor** to its
+- The runtime spawns `python -m tubulin.worker`, writes a JSON **descriptor** to its
   stdin, and reads **one JSON object per line** from its stdout
   (`log` / `progress` / `completed` / `failed`).
 - `stderr` is captured for diagnostics; a `max_runtime_seconds` timeout kills runaway
@@ -170,7 +170,7 @@ and the multi-tenant gaps — in [parallelism.md](parallelism.md).
 
 ## Memory model — why this exists
 
-The narrow thing Kinesin does better than a naive Streamlit-style app is **keep large
+The narrow thing Tubulin does better than a naive Streamlit-style app is **keep large
 data out of session memory**:
 
 | Rule | Enforcement |
@@ -178,7 +178,7 @@ data out of session memory**:
 | Sessions store only small data | `Session::set_state` rejects values > 64 KiB |
 | Uploaded files go to disk | `POST /upload` streams to `storage/uploads/` |
 | Job results go to disk | workers write parquet/SVG to `storage/results/` |
-| Browser gets previews only | `kinesin.preview` returns the first 100 rows; plots are files |
+| Browser gets previews only | `tubulin.preview` returns the first 100 rows; plots are files |
 | Workers are disposable | one process per job (or per shard); exits → memory reclaimed |
 
 Measured on the TPP example: a worker peaks at ~224 MB (of which ~181 MB is just the
@@ -203,7 +203,7 @@ All file routes resolve paths under the project root and reject anything outside
 
 ## Limitations — what this is *not* yet
 
-Kinesin today is a **single-tenant prototype**. For a multi-user server these are
+Tubulin today is a **single-tenant prototype**. For a multi-user server these are
 real, known gaps:
 
 - **Fairness.** One `parallel` job can acquire the whole worker pool; concurrent jobs

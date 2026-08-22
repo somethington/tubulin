@@ -1,4 +1,4 @@
-# Kinesin framework roadmap
+# Tubulin framework roadmap
 
 Improvements distilled from building the TPP example app. The recurring lesson:
 **performance and correctness kept turning out to be framework concerns masquerading
@@ -13,12 +13,12 @@ with existing constraints are noted.
 numeric parity — required hand-writing a WebSocket client to click the run button
 and parse `widget_update`s. There was no way to drive an app without a browser.
 
-**Shipped:** [`kinesin.testing`](../python/kinesin/testing.py). Runs an app's job
+**Shipped:** [`tubulin.testing`](../python/tubulin/testing.py). Runs an app's job
 in-process through the same execution core the worker uses
-(`kinesin.worker.execute_job`), so output-collection semantics are identical.
+(`tubulin.worker.execute_job`), so output-collection semantics are identical.
 
 ```python
-from kinesin.testing import run_app
+from tubulin.testing import run_app
 
 r = run_app("examples/tpp/ui.py", inputs={"Imputation seed": 7, "number_2": 8})
 assert r.result is not None              # primary result table written
@@ -27,7 +27,7 @@ assert df.height > 0 and r.elapsed < 30
 assert len(r.gallery("avg_curves")) > 0  # files a job.map(into=...) accumulated
 ```
 
-Plus a CLI for quick benchmarks: `python -m kinesin.testing <ui.py> [key=value ...]`.
+Plus a CLI for quick benchmarks: `python -m tubulin.testing <ui.py> [key=value ...]`.
 Inputs override widget values by **id or label**; unknown keys raise (no silent
 drops). `shards=N` runs the sharding logic sequentially for correctness — it is *not*
 the runtime's parallel wall-clock (use the real runtime for that number).
@@ -56,7 +56,7 @@ default font embedding (2× file size). We only found it by benchmarking; no app
 author should have to.
 
 **Add:** bake the fast defaults into the framework's figure-saving (no `tight`,
-`svg.fonttype="none"`) and ship a `kinesin.reserve_legend(fig)` helper so outside
+`svg.fonttype="none"`) and ship a `tubulin.reserve_legend(fig)` helper so outside
 legends don't clip without the tight cost. Make "fast and correct" the default.
 (Applied ad-hoc in TPP — generalize it.)
 
@@ -65,7 +65,7 @@ legends don't clip without the tight cost. Make "fast and correct" the default.
 **Pain:** measured ~1–3s cold import of polars+scipy+matplotlib *per worker* — the
 largest fixed slice of the job time, paid by every shard.
 
-**Built:** [`kinesin.forkserver`](../python/kinesin/forkserver.py) — a resident parent
+**Built:** [`tubulin.forkserver`](../python/tubulin/forkserver.py) — a resident parent
 imports the user's module **once**, then `fork()`s a fresh child per job. The child
 inherits the warm import via copy-on-write, runs one job, and exits — memory is still
 reclaimed by process exit and **no worker is reused** (the parent never runs job code,
@@ -85,12 +85,12 @@ through Apple's **Accelerate** framework, which segfaults in a forked child rega
 of thread settings — a documented macOS limitation (why CPython defaults to `spawn`
 there). So the full TPP job can't complete via fork on macOS.
 
-**Runtime wiring (done):** `crates/kinesin-runtime/src/workers/forkserver.rs` — a
-`ForkServerManager` lazily starts one `python -m kinesin.forkserver` per module file,
+**Runtime wiring (done):** `crates/tubulin-runtime/src/workers/forkserver.rs` — a
+`ForkServerManager` lazily starts one `python -m tubulin.forkserver` per module file,
 waits for its readiness line, and hands out the socket path. `workers/mod.rs::run_worker`
 routes each job/shard over that socket (`run_via_socket`) and falls back to spawning a
 fresh worker process if the socket can't be reached. Gated on at runtime by OS
-(`cfg!(target_os = "linux")`) / `KINESIN_FORKSERVER`.
+(`cfg!(target_os = "linux")`) / `TUBULIN_FORKSERVER`.
 
 **Validated end-to-end on Linux (Docker, full runtime + WS):** the full TPP job —
 including the `gaussian_kde`→LAPACK that segfaults on macOS — completes through the
@@ -98,7 +98,7 @@ fork path (all 3 tables, both galleries), and is **~33% faster: 6.7s (fork off) 
 (fork on)**. macOS falls back cleanly with no regression (6.3s).
 
 **Gate:** `forkserver.fork_supported()` (Python) and the Rust manager both default fork
-on only for Linux; `KINESIN_FORKSERVER=1/0` overrides. Known limitation: a job that
+on only for Linux; `TUBULIN_FORKSERVER=1/0` overrides. Known limitation: a job that
 times out under the fork transport can't be force-killed via the socket (closing it
 sends the child EPIPE on its next emit); acceptable for now.
 
@@ -108,7 +108,7 @@ sends the child EPIPE on its next emit); acceptable for now.
 overlap shard-0 analysis with rendering — scheduler expertise leaking into the app.
 
 **Shipped:** `job.map` / `job.primary` now only *register* work; the worker runs it
-([`worker.py` `JobContext._run_deferred`](../python/kinesin/worker.py)) after the job
+([`worker.py` `JobContext._run_deferred`](../python/tubulin/worker.py)) after the job
 function returns, when it can see the whole plan. That deferral is what lets the
 framework balance and aggregate with no app input:
 
@@ -133,7 +133,7 @@ already in place.
 **Pain:** `plot:` / `plotly:` / `table:` / `gallery:` / `download:` are stringly-typed
 contracts duplicated across Python and Rust; a typo is a silent runtime miss.
 
-**Add:** generate the Python + TS binding/protocol types from the `kinesin-protocol`
+**Add:** generate the Python + TS binding/protocol types from the `tubulin-protocol`
 crate (single source of truth). The plan deferred this; revisit. Robustness, not speed.
 
 ## 7. Data-derived UI options without pandas-at-registration — small effort
@@ -154,8 +154,8 @@ scope question, not a task.
 ## 8. Job failure surfacing — medium effort
 
 **Pain:** when a worker dies, its stderr is only examined on crash
-([`workers/process.rs`](../crates/kinesin-runtime/src/workers/process.rs)), and
-errors cross the wire as bare strings ([`protocol.py` `failed`](../python/kinesin/protocol.py)).
+([`workers/process.rs`](../crates/tubulin-runtime/src/workers/process.rs)), and
+errors cross the wire as bare strings ([`protocol.py` `failed`](../python/tubulin/protocol.py)).
 Building TPP, a failing shard meant reading stderr by hand to reconstruct what
 broke. The failure path is as much a framework concern as the success path.
 
@@ -168,12 +168,12 @@ message, which today hides the real cause.
 ## 9. Content-addressed result cache — medium effort, high payoff
 
 **Pain:** `cache_dir` is configured and the directory is created on startup
-([`config/mod.rs`](../crates/kinesin-runtime/src/config/mod.rs)) — but nothing ever reads
+([`config/mod.rs`](../crates/tubulin-runtime/src/config/mod.rs)) — but nothing ever reads
 it. Re-running a job with identical inputs re-does every shard's work.
 
 **Add:** hash the worker descriptor (module + qualname + args) and key results
 under `cache_dir`; a hit short-circuits in the Rust `JobManager` **before any
-worker spawns** ([`jobs/`](../crates/kinesin-runtime/src/jobs)). This is
+worker spawns** ([`jobs/`](../crates/tubulin-runtime/src/jobs)). This is
 filesystem result reuse, *not* process reuse — it does **not** touch the
 [[no-warm-workers]] constraint. Opt-in per job so nondeterministic jobs can stay
 uncached. (Either wire it up or drop the dead config knob.)
@@ -195,16 +195,16 @@ whole files through memory — the exact overhead the rest of this roadmap exist
 to remove, just on the Rust side.
 
 **Shipped:**
-- **Native parquet preview** ([`artifacts/preview.rs`](../crates/kinesin-runtime/src/artifacts/preview.rs)) —
+- **Native parquet preview** ([`artifacts/preview.rs`](../crates/tubulin-runtime/src/artifacts/preview.rs)) —
   reads head+schema via `arrow`/`parquet` (NaN/non-finite → null, matching the
   Python contract), on a blocking thread. csv/ipc and any read error fall back to
-  `python -m kinesin.preview`. The worker no longer writes `.preview.json`
+  `python -m tubulin.preview`. The worker no longer writes `.preview.json`
   sidecars. Verified against an arrow-written *and* a polars-written (zstd) file.
 - **Streaming uploads** — `field.chunk()` straight to disk, bounded memory.
 - **Streaming file serving** — `Body::from_stream` over a `ReaderStream`.
-- **Native bundles** ([`artifacts/bundle.rs`](../crates/kinesin-runtime/src/artifacts/bundle.rs)) —
+- **Native bundles** ([`artifacts/bundle.rs`](../crates/tubulin-runtime/src/artifacts/bundle.rs)) —
   build the results `.zip` from the manifest in Rust (`zip` + `glob`), no
-  `kinesin.zipjob` subprocess; written to `<out>.partial` then renamed.
+  `tubulin.zipjob` subprocess; written to `<out>.partial` then renamed.
 - **Cheap wins** — `tower-http` `CompressionLayer` (gzip/br); per-shard `Progress`
   coalesced to whole-percent changes (single-job path too).
 
@@ -214,10 +214,10 @@ the protocol type for a marginal gain on a bounded payload. Not worth the churn.
 
 Original analysis below.
 
-- **Preview spawns Python + polars per request.** [`artifacts/preview.rs`](../crates/kinesin-runtime/src/artifacts/preview.rs)
-  runs `python -m kinesin.preview` on every on-demand preview, and `preview.py`
+- **Preview spawns Python + polars per request.** [`artifacts/preview.rs`](../crates/tubulin-runtime/src/artifacts/preview.rs)
+  runs `python -m tubulin.preview` on every on-demand preview, and `preview.py`
   imports polars — hundreds of ms to read the first 100 rows of a parquet file.
-  The sidecar in [`jobs/outputs.rs` `send_table`](../crates/kinesin-runtime/src/jobs/outputs.rs)
+  The sidecar in [`jobs/outputs.rs` `send_table`](../crates/tubulin-runtime/src/jobs/outputs.rs)
   only covers job-bound tables; the `/preview` route and any sidecar-less path
   still spawn Python. **Read parquet head+schema natively in Rust** (`arrow` +
   `parquet` crates — lighter than pulling in the `polars` crate just for a head).
@@ -225,12 +225,12 @@ Original analysis below.
   *Highest-payoff piece; it re-pays the cold-import cost on a routine path.*
 - **Uploads buffer the whole file in RAM.** `upload_handler` does
   `field.bytes().await` (up to 512 MiB) before writing
-  ([`http/files.rs`](../crates/kinesin-runtime/src/http/files.rs)), against the spirit of
+  ([`http/files.rs`](../crates/tubulin-runtime/src/http/files.rs)), against the spirit of
   memory Rule 2. Stream `field.chunk()` straight to disk.
 - **File serving reads whole files into a `Vec`.** `serve_file` uses
   `tokio::fs::read`; use `tower-http`'s `ServeFile` / `Body::from_stream`
   (gets Range support for free).
-- **Bundles shell out to `kinesin.zipjob`.** It's stdlib-only, so the win is
+- **Bundles shell out to `tubulin.zipjob`.** It's stdlib-only, so the win is
   modest (interpreter startup), but the `zip` crate lets the archive **stream**
   into the response instead of write-then-read-it-all-back.
 - **Cheap wins:** a `tower-http` `CompressionLayer` (JS bundle, SVG, Plotly JSON
@@ -258,8 +258,9 @@ lets people other than the maintainer extend and deploy it.
 
 **Tier 0 — adoption is impossible without these**
 
-- [x] **Installable wheels** — `pip install kinesin`, no Rust toolchain, no node (T0.4)
-- [ ] &nbsp;&nbsp;&nbsp;&nbsp;↳ *publish to PyPI* — needs a PyPI project + the `pypi` repo environment
+- [x] **Installable wheels** — `pip install tubulin`, no Rust toolchain, no node (T0.4)
+- [ ] &nbsp;&nbsp;&nbsp;&nbsp;↳ *publish to PyPI* — needs a PyPI project + the `pypi` repo environment.
+      The name `kinesin` was squatted, hence the rename to `tubulin` (see T0.4)
 - [x] **Rich text** — `app.markdown` (T0.1)
 - [x] **Free text input** — `app.text_input`, `app.text_area` (T0.1)
 - [x] **Multiple choice** — `app.multiselect` (T0.1)
@@ -287,7 +288,7 @@ lets people other than the maintainer extend and deploy it.
 
 - [ ] **Custom-component API** — adding a widget means hand-editing four places today
       (protocol crate, `protocol.py`, `types.ts`, a React component), so only a
-      maintainer can extend kinesin. #6's codegen is the prerequisite.
+      maintainer can extend tubulin. #6's codegen is the prerequisite.
 - [ ] **Result cache behind shareable URLs** — #9 plus Tier 1's query params.
 - [ ] **Deployment story** — Docker/k8s guide, secrets, and basic auth. Note this
       crosses the single-tenant line drawn in [architecture.md](architecture.md#limitations);
@@ -316,7 +317,7 @@ group does. Every widget and container in one runnable page:
 
 ### T0.3 Hot reload — ✅ done
 
-[`reload.rs`](../crates/kinesin-runtime/src/reload.rs) watches the app's `.py` files and
+[`reload.rs`](../crates/tubulin-runtime/src/reload.rs) watches the app's `.py` files and
 re-runs the registration pass on save, pushing a fresh `ui_tree` to every open browser.
 The registration pass being cheap and self-contained is what makes this the *whole* of
 hot reload. A save that doesn't parse keeps the last good spec serving and surfaces the
@@ -326,7 +327,7 @@ taking a filesystem-notify dependency.
 
 ### T0.4 Installable wheels — ✅ done (publishing not yet run)
 
-There was no `pip install kinesin`: the build backend produced a pure-Python wheel with
+There was no `pip install tubulin`: the build backend produced a pure-Python wheel with
 no console entry point, so the binary only existed via `cargo run`. Now maturin
 (`bindings = "bin"`) builds one wheel carrying the compiled runtime, the Python package,
 and the built frontend. `make wheel` builds it locally;
@@ -334,16 +335,40 @@ and the built frontend. `make wheel` builds it locally;
 macOS wheels on x86_64 and arm64, **smoke-tests each one** in a clean venv before it can
 be published, and publishes on a `v*` tag via trusted publishing.
 
-The supporting change is in [`config/mod.rs`](../crates/kinesin-runtime/src/config/mod.rs):
+The supporting change is in [`config/mod.rs`](../crates/tubulin-runtime/src/config/mod.rs):
 a source checkout and an installed wheel resolve the interpreter, `PYTHONPATH` and the
 frontend directory differently, and every Python spawn now goes through
 `Config::python_command()` so the two can't drift. Verified end to end — wheel installed
-into a fresh venv outside the repo, `kinesin run` with no `KINESIN_*` env set: app
+into a fresh venv outside the repo, `tubulin run` with no `TUBULIN_*` env set: app
 registered, frontend served from inside the package, job ran to completion with tables
 and a Plotly figure.
 
-**Not done:** the package has never been published, so `pip install kinesin` does not
+**The rename.** This framework was called *kinesin* until the first publish attempt ran
+into a wall: `kinesin` is taken on PyPI by an unrelated 1 KB placeholder package
+(`"""Placeholder."""`, uploaded 2026-04-05), and taken on crates.io as well. There was no
+PyPI project to create. Worse, the squatter owns the *import* name too: with the real
+package installed, `pip install kinesin` silently overwrote `site-packages/kinesin/__init__.py`
+with the stub — no pip warning — breaking `from kinesin import App`, and uninstalling the
+stub left the package broken while `pip list` still reported it healthy. Renaming to
+**tubulin** (free on both registries) removes the collision outright rather than working
+around it with a suffixed distribution name. Tubulin is the subunit that polymerizes into
+the microtubule — the track a kinesin motor walks along — so the metaphor still holds.
+
+**Not done:** the package has never been published, so `pip install tubulin` does not
 work yet — it needs a PyPI project and the `pypi` environment configured on the repo.
+
+**Also still open on the packaging path**, found in the same review:
+- **The sdist ships without a frontend.** `[tool.maturin] include` scopes `_frontend` to
+  `format = "wheel"`, and the `sdist` job in `release.yml` never builds it. Any install
+  that falls back to source (Windows, musl, i686, `--no-binary`) needs a Rust toolchain
+  *and* then serves 404 for every page, logging advice (`run 'cd frontend && npm run build'`)
+  that makes no sense to a pip user. Either don't publish the sdist, or make a missing
+  frontend a hard startup error.
+- **No Windows wheel.** The matrix is Linux x86_64/aarch64 + macOS x86_64/arm64, so
+  Windows users hit the broken-sdist path above. `config/mod.rs` already carries a
+  `#[cfg(windows)]` interpreter branch, so this is a matrix decision, not a port.
+- **Bare PyPI metadata.** No `classifiers`, no `[project.urls]`, no keywords; the
+  `license = { text = "MIT" }` form is the deprecated pre-PEP-639 spelling.
 
 ---
 
@@ -357,7 +382,7 @@ Suggested order for what's next: **#12 (CI protects everything else, ✅ done) �
 **Pain:** the codebase had real test coverage (Rust unit tests, the Python suite, the
 TPP integration test) and **nothing ran it** — no `.github/workflows` existed. The one
 test covering real polars-parquet compatibility was `#[ignore]`d behind a
-`KINESIN_TEST_PARQUET` env var pointing at an uncommitted fixture, so it could only
+`TUBULIN_TEST_PARQUET` env var pointing at an uncommitted fixture, so it could only
 ever run on the machine where it was written.
 
 **Shipped:**
@@ -396,8 +421,8 @@ Python for csv/ipc), and they **already drifted**: `preview.py` emitted bare
 the dual-contract structure that produced the bug is still standing.
 
 **Add:** the `arrow` crate already reads CSV and IPC; extend
-[`artifacts/preview.rs`](../crates/kinesin-runtime/src/artifacts/preview.rs) to cover them and delete
-`python/kinesin/preview.py` entirely. Kills the last preview subprocess *and*
+[`artifacts/preview.rs`](../crates/tubulin-runtime/src/artifacts/preview.rs) to cover them and delete
+`python/tubulin/preview.py` entirely. Kills the last preview subprocess *and*
 the drift class structurally, instead of patching divergences as they're found.
 (Same shape as #11's zipjob removal.)
 
@@ -410,7 +435,7 @@ leaks a process and its memory indefinitely.
 
 **Add:** the forked child reports its PID as its first protocol line; on timeout
 the runtime (which already detects it in
-[`workers/socket.rs`](../crates/kinesin-runtime/src/workers/socket.rs)) sends
+[`workers/socket.rs`](../crates/tubulin-runtime/src/workers/socket.rs)) sends
 SIGKILL. Process exit is already the memory-reclamation mechanism — this just
 makes it enforceable.
 
@@ -418,7 +443,7 @@ makes it enforceable.
 
 **Pain:** `JobRecord` already tracks id/status/result/logs per job behind an
 `#[allow(dead_code)]` promising "a future /jobs endpoint"
-([`jobs/`](../crates/kinesin-runtime/src/jobs)) — the data is collected and
+([`jobs/`](../crates/tubulin-runtime/src/jobs)) — the data is collected and
 unreachable.
 
 **Add:** serialize the records map as `GET /jobs`. It's also the natural
@@ -434,7 +459,7 @@ natively, so it may be dead weight (possibly only reachable via
 carries a 43 MB duckdb that nothing imports.
 
 **Add:** one investigative pass — remove `pyarrow`, run the full suite + TPP; if
-only pandas interop needs it, make it an optional extra (`kinesin[pandas]`).
+only pandas interop needs it, make it an optional extra (`tubulin[pandas]`).
 Evict duckdb from the resolved env. Roughly halves the runtime disk floor if it
 holds.
 
@@ -450,7 +475,7 @@ mechanism, so build it once.
 
 ## Out of scope by design — productionize only on a deliberate decision
 
-[`architecture.md`](architecture.md) declares kinesin single-tenant, in-memory,
+[`architecture.md`](architecture.md) declares tubulin single-tenant, in-memory,
 no-auth **by design**. The following are real gaps *for a deployed service* but a
 scope change, not framework-absorbs-expertise items — listed so the decision is
 explicit, not silent:

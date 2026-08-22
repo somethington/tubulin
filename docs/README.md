@@ -1,6 +1,6 @@
-# Kinesin documentation
+# Tubulin documentation
 
-Kinesin is a Python-first framework for building **managed scientific web apps**: you
+Tubulin is a Python-first framework for building **managed scientific web apps**: you
 write a small Python file that declares a UI and one or more jobs, and a Rust runtime
 owns everything else — the HTTP/WebSocket server, browser sessions, a job queue,
 disposable (and optionally parallel) Python workers, and a disk-backed result
@@ -9,7 +9,7 @@ previews cross the wire.
 
 ```python
 # ui.py
-from kinesin import App
+from tubulin import App
 
 app = App("Hello")
 greeting = app.text("Click below.")
@@ -18,7 +18,7 @@ btn.on_click(app.set_text(greeting, "Hello from the Rust runtime"))
 ```
 
 ```bash
-kinesin run ui.py     # → http://127.0.0.1:8000
+tubulin run ui.py     # → http://127.0.0.1:8000
 ```
 
 ## Contents
@@ -28,10 +28,10 @@ kinesin run ui.py     # → http://127.0.0.1:8000
 | [architecture.md](architecture.md) | The whole system: components, the registration pass, request/job lifecycles, sharding, memory model, route map, and honest limitations. **Start here.** |
 | [python-api.md](python-api.md) | The Python developer reference: `App`, every widget (incl. collapsible `group` and conditional `enabled_when`), refs, the `@app.job` decorator, and the `JobContext` primitives (`map`/`primary`/dataframe-native `result`/`table`/`write_*`). |
 | [parallelism.md](parallelism.md) | The parallel-job model in depth: `job.map`/`job.primary`, how the runtime allocates workers, the memory/CPU tradeoffs, and what's missing for multi-tenant servers. |
-| [testing.md](testing.md) | The headless `kinesin.testing` harness: run a job in-process and assert on its outputs — no browser, no server. |
+| [testing.md](testing.md) | The headless `tubulin.testing` harness: run a job in-process and assert on its outputs — no browser, no server. |
 | [protocol.md](protocol.md) | The wire contract: browser↔runtime messages, the app spec, the worker line protocol, and the HTTP routes. |
 | [runtime-internals.md](runtime-internals.md) | The Rust runtime: crate/module map, key types, how a job runs, and the optional fork-server. |
-| [configuration.md](configuration.md) | `kinesin.toml` and the environment variables. |
+| [configuration.md](configuration.md) | `tubulin.toml` and the environment variables. |
 | [roadmap.md](roadmap.md) | Framework-improvement plan: the internal items distilled from building TPP, plus the tiered checklist for closing the Streamlit adoption gap. |
 | [mvp.md](mvp.md) | The original MVP scope and milestone map (historical). |
 
@@ -42,7 +42,7 @@ is its own package: [`design/README.md`](../design/README.md).
 
 [`examples/tpp`](../examples/tpp) adapts a real Streamlit app
 ([tpp_solver](https://github.com/somethington/tpp_solver), Thermal Proteome
-Profiling) to Kinesin — interactive Plotly charts, a paginated curve gallery of
+Profiling) to Tubulin — interactive Plotly charts, a paginated curve gallery of
 hundreds of plots, a downloadable results bundle, and a parallel job that fans
 hundreds of figures across the machine's cores. See
 [examples/tpp/README.md](../examples/tpp/README.md).

@@ -1,14 +1,14 @@
 """The headline demo: upload a CSV, run a summary analysis as a managed job, and
 preview the disk-backed result.
 
-    kinesin run examples/csv_analysis/ui.py
+    tubulin run examples/csv_analysis/ui.py
 
 A sample file is provided alongside this one (sample.csv).
 """
 
 import time
 
-from kinesin import App
+from tubulin import App
 
 app = App("CSV Analyzer")
 

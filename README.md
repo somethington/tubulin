@@ -1,4 +1,4 @@
-# Kinesin
+# Tubulin
 
 A Python-first scientific application framework powered by a Rust runtime.
 
@@ -9,7 +9,7 @@ never lives in session memory — only ids, paths, and small previews cross the 
 
 ```python
 # ui.py
-from kinesin import App
+from tubulin import App
 
 app = App("CSV Analyzer")
 
@@ -37,13 +37,17 @@ writes the parquet and the preview for you — no manual paths.
 Install and run it:
 
 ```bash
-pip install kinesin
-kinesin run ui.py
+pip install tubulin
+tubulin run ui.py
 # open http://127.0.0.1:8000
 ```
 
 The wheel carries the compiled Rust runtime and the built frontend, so there is no Rust
 toolchain and no node install to do.
+
+> **Not on PyPI yet.** The wheels build and install, but nothing has been published, so
+> `pip install tubulin` will not resolve until the first release. Build one locally with
+> `make wheel` and `pip install dist/tubulin-*.whl`.
 
 Edit `ui.py` and save — the runtime re-registers the app and every open browser picks
 up the new UI. A save that doesn't parse keeps the last good version on screen and
@@ -54,9 +58,9 @@ shows the traceback as a banner.
 ```
 Browser (React)
    ↕  HTTP + WebSocket
-Rust runtime  (the `kinesin` binary — source of truth)
-   ↕  spawn once:  python -m kinesin.register ui.py   → app spec
-   ↕  spawn / job: python -m kinesin.worker  …        → progress + result
+Rust runtime  (the `tubulin` binary — source of truth)
+   ↕  spawn once:  python -m tubulin.register ui.py   → app spec
+   ↕  spawn / job: python -m tubulin.worker  …        → progress + result
 Python layer (registration pass + disposable workers)
    ↕
 storage/{uploads,results,cache}
@@ -81,12 +85,12 @@ storage/{uploads,results,cache}
   on-demand `.zip` download bundle.
 - **Disposable workers** — one process per job, memory reclaimed on exit. On Linux an
   optional **fork-server** amortizes the heavy import (one import, fork per job).
-- **Hot reload** — `kinesin run` watches the app's `.py` files and re-registers on
+- **Hot reload** — `tubulin run` watches the app's `.py` files and re-registers on
   save; a broken edit surfaces as a banner instead of blanking the page
   (`--no-reload` opts out).
-- **Headless test harness** — `kinesin.testing.run_app(...)` runs a job in-process and
+- **Headless test harness** — `tubulin.testing.run_app(...)` runs a job in-process and
   returns its outputs; no browser, no server. See [docs/testing.md](docs/testing.md).
-- **Design system** — `@kinesin/design`: dependency-free CSS tokens (light + dark) and a
+- **Design system** — `@tubulin/design`: dependency-free CSS tokens (light + dark) and a
   Plotly theme. See [design/README.md](design/README.md).
 
 ## Documentation
@@ -96,14 +100,14 @@ Full docs are in [`docs/`](docs/README.md):
 - [architecture.md](docs/architecture.md) — the whole system, lifecycles, memory model, route map, limitations
 - [python-api.md](docs/python-api.md) — `App`, widgets (incl. `group` / `enabled_when`), jobs, the `JobContext` primitives
 - [parallelism.md](docs/parallelism.md) — parallel jobs, `job.map`/`job.primary`, and the multi-tenant gaps
-- [testing.md](docs/testing.md) — the headless `kinesin.testing` harness
+- [testing.md](docs/testing.md) — the headless `tubulin.testing` harness
 - [protocol.md](docs/protocol.md) — the wire formats and HTTP routes
 - [runtime-internals.md](docs/runtime-internals.md) — the Rust runtime, module by module (incl. the fork-server)
-- [configuration.md](docs/configuration.md) — `kinesin.toml` and env vars
+- [configuration.md](docs/configuration.md) — `tubulin.toml` and env vars
 - [roadmap.md](docs/roadmap.md) — framework-improvement plan, plus the tiered checklist for closing the Streamlit adoption gap
 
 Every widget and container in one runnable page: [examples/widgets](examples/widgets/ui.py)
-(`kinesin run examples/widgets/ui.py`). A real adapted app (Thermal Proteome Profiling,
+(`tubulin run examples/widgets/ui.py`). A real adapted app (Thermal Proteome Profiling,
 with parallel plotting of hundreds of curves) lives in [examples/tpp](examples/tpp/README.md).
 
 ## Developing
@@ -119,7 +123,7 @@ cd frontend && npm install && npm run build
 uv sync
 
 # Run an example (dev: invoke the binary through cargo)
-cargo run -p kinesin-runtime -- run examples/csv_analysis/ui.py
+cargo run -p tubulin-runtime -- run examples/csv_analysis/ui.py
 ```
 
 This is a working prototype: it runs one user's app well on one machine. It is

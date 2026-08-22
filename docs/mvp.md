@@ -1,4 +1,4 @@
-# Kinesin MVP
+# Tubulin MVP
 
 ## What it proves
 
@@ -29,14 +29,14 @@ cd frontend && npm install && npm run build && cd ..
 uv sync
 
 # Dev: invoke the binary through cargo
-cargo run -p kinesin-runtime -- run examples/csv_analysis/ui.py
+cargo run -p tubulin-runtime -- run examples/csv_analysis/ui.py
 # open http://127.0.0.1:8000
 ```
 
-The runtime finds Python at `.venv/bin/python` (override with `KINESIN_PYTHON`) and
+The runtime finds Python at `.venv/bin/python` (override with `TUBULIN_PYTHON`) and
 imports the package from `python/` via `PYTHONPATH`. The project root defaults to
-the current directory (override with `KINESIN_ROOT`); the frontend is served from
-`frontend/dist` (override with `KINESIN_FRONTEND`).
+the current directory (override with `TUBULIN_ROOT`); the frontend is served from
+`frontend/dist` (override with `TUBULIN_FRONTEND`).
 
 ## Explicitly out of scope (MVP)
 
@@ -52,6 +52,6 @@ not supported.
 - `examples/long_job` — a 5-second job streaming progress, then a small preview.
 - `examples/csv_analysis` — the headline demo: upload → analyze → preview.
 - `examples/tpp` — a real Streamlit app ([tpp_solver](https://github.com/somethington/tpp_solver),
-  Thermal Proteome Profiling) adapted to Kinesin, with a benchmark showing identical
+  Thermal Proteome Profiling) adapted to Tubulin, with a benchmark showing identical
   scientific metrics at ~45× less peak Python heap and ~4× less RSS. See
   [examples/tpp/README.md](../examples/tpp/README.md).

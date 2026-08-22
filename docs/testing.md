@@ -1,13 +1,13 @@
-# Testing apps headlessly (`kinesin.testing`)
+# Testing apps headlessly (`tubulin.testing`)
 
 The runtime normally drives an app — it reads `ui.py`, resolves the job's arguments
 from widget values, spawns workers, and routes outputs to bound widgets. For **tests,
 golden-output regression, and benchmarks** you usually just want to run the job once
 and inspect what it produced, without a server, a WebSocket, or a browser. That's
-`kinesin.testing`.
+`tubulin.testing`.
 
 ```python
-from kinesin.testing import run_app
+from tubulin.testing import run_app
 
 r = run_app("examples/tpp/ui.py", inputs={"Imputation seed": 7, "number_2": 8})
 assert r.result is not None              # primary result table written
@@ -17,7 +17,7 @@ assert len(r.gallery("avg_curves")) > 0  # files a job.map(into=...) accumulated
 ```
 
 It runs the job **in-process** through the same execution core the worker uses
-(`kinesin.worker.execute_job`), so output-collection semantics are identical to a real
+(`tubulin.worker.execute_job`), so output-collection semantics are identical to a real
 run.
 
 ## `run_app(ui_path, inputs=None, *, job=None, shards=1, result_dir=None) -> RunResult`
@@ -53,7 +53,7 @@ across repeated runs).
 A browser-free way to run an app and eyeball/time it:
 
 ```bash
-python -m kinesin.testing examples/tpp/ui.py "Imputation seed=7" number_2=8
+python -m tubulin.testing examples/tpp/ui.py "Imputation seed=7" number_2=8
 # job=tpp_analyze  elapsed=3.2s  shards=1
 #   output[avg_curves] -> dir … (6 files)
 #   …

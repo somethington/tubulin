@@ -1,12 +1,12 @@
 """Milestones 1-3: static UI, a browser event reaching the runtime, and an action
 the runtime executes that updates a widget — no job, no Python in the request path.
 
-    kinesin run examples/hello_world/ui.py
+    tubulin run examples/hello_world/ui.py
 """
 
-from kinesin import App
+from tubulin import App
 
-app = App("Hello Kinesin")
+app = App("Hello Tubulin")
 
 greeting = app.text("Click the button below.")
 button = app.button("Say hello")

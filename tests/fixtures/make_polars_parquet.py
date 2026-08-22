@@ -3,7 +3,7 @@ parquet-compatibility test.
 
     PYTHONPATH=python .venv/bin/python tests/fixtures/make_polars_parquet.py
 
-The native preview reader in `crates/kinesin-runtime/src/artifacts/parquet/` is
+The native preview reader in `crates/tubulin-runtime/src/artifacts/parquet/` is
 verified against an *arrow*-written file by its other tests; this one is written by
 **polars** (zstd), which is what real job outputs go through. Keep the shape in sync
 with `reads_polars_written_parquet`.

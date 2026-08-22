@@ -1,6 +1,6 @@
 # Runtime internals (Rust)
 
-The `kinesin` binary, in [`crates/kinesin-runtime/src/`](../crates/kinesin-runtime/src).
+The `tubulin` binary, in [`crates/tubulin-runtime/src/`](../crates/tubulin-runtime/src).
 Built on **axum** (HTTP/WS) + **tokio**. This is a map for someone reading or changing
 the runtime.
 
@@ -10,13 +10,13 @@ the runtime.
 | --- | --- |
 | `main.rs` | entry; tracing init; parse CLI; load config; register; serve |
 | `cli.rs` | hand-rolled arg parser for `run <ui.py> [--port] [--config]` |
-| `config/` | `mod.rs` loads `kinesin.toml` + defaults (canonicalized project root, Python interpreter, `max_workers` 0 = auto-cores); `raw.rs` is the on-disk TOML shape |
-| `registry.rs` | spawn `python -m kinesin.register`, parse the `AppSpec` |
+| `config/` | `mod.rs` loads `tubulin.toml` + defaults (canonicalized project root, Python interpreter, `max_workers` 0 = auto-cores); `raw.rs` is the on-disk TOML shape |
+| `registry.rs` | spawn `python -m tubulin.register`, parse the `AppSpec` |
 | `state.rs` | `AppState { config, spec, jobs, sessions }` shared via `Arc` |
 | `http/` | `mod.rs` axum router (`/health`, `/ws`, static); `upload.rs` streaming multipart; `files.rs` containment-checked `/preview`, `/file`, `/download`; `bundle.rs` lazy `/bundle` builds; `websocket.rs` per-session loop; `events.rs` event → state/action dispatch |
 | `session/` | `mod.rs` `Session` (state map + slots + outbound channel) and `SessionManager`; `actions.rs` resolves `ArgSpec` args and builds the `JobSink` from bindings |
 | `jobs/` | `mod.rs` `JobManager` (bounded queue + semaphore); `runner.rs` single-worker path + shared `finish`; `sharded.rs` parallel fan-out with averaged progress; `outputs.rs` drives bound widgets; `records.rs` bounded job-record store |
-| `workers/` | `mod.rs` `run_worker` + line-protocol pump; `socket.rs` fork-server transport; `process.rs` disposable `python -m kinesin.worker`; `forkserver.rs` `ForkServerManager` (Linux-gated, evicts dead servers) |
+| `workers/` | `mod.rs` `run_worker` + line-protocol pump; `socket.rs` fork-server transport; `process.rs` disposable `python -m tubulin.worker`; `forkserver.rs` `ForkServerManager` (Linux-gated, evicts dead servers) |
 | `artifacts/` | `preview.rs` preview entry point (Python fallback for csv/ipc); `parquet.rs` native arrow/parquet preview (first 100 rows); `bundle.rs` native zip builder |
 
 ## Key types
@@ -75,13 +75,13 @@ finish_job(config, sink, records, id, started, result_path, outputs, failure)
 transports — both funnel through the same `WorkerMessage` pump:
 
 - **Fork-server (preferred on Linux).** `ForkServerManager::socket_for(module_file)`
-  returns a Unix-socket path, lazily starting one `python -m kinesin.forkserver
+  returns a Unix-socket path, lazily starting one `python -m tubulin.forkserver
   <module>` per module file (it imports the module once, waits for a readiness line).
   `workers/socket.rs` connects, sends the descriptor as one line, half-closes, and reads
   the protocol back. If the socket can't be reached the dead server is evicted (so the
   next job restarts it) and the call falls through.
 - **Process (fallback / non-Linux).** `workers/process.rs` spawns `python -m
-  kinesin.worker` with `PYTHONPATH` set and `cwd = project_root`, writes the descriptor
+  tubulin.worker` with `PYTHONPATH` set and `cwd = project_root`, writes the descriptor
   to stdin and closes it, drains stderr concurrently, and reads stdout.
 
 Either way the read loop is wrapped in a `max_runtime_seconds` timeout. If the worker
@@ -100,7 +100,7 @@ runs job code; this is *not* a warm worker pool). Measured ~33% off the TPP job 
 Linux.
 
 Gated to Linux by default (`ForkServerManager::new` checks `cfg!(target_os = "linux")`;
-`KINESIN_FORKSERVER=1/0` overrides). On macOS it stays off because scipy/numpy LAPACK
+`TUBULIN_FORKSERVER=1/0` overrides). On macOS it stays off because scipy/numpy LAPACK
 via Apple's Accelerate framework segfaults in a forked child regardless of thread
 settings — the Python side forces native libs single-threaded
 (`POLARS_MAX_THREADS=1`, …) to be fork-safe on Linux's OpenBLAS.
@@ -122,15 +122,15 @@ per-job parallelism with global concurrency** — fine for one user, wrong for m
 content-type, and Range/conditional-request support (resumable downloads) — with
 `Content-Disposition` appended. `/bundle?job=<id>` checks for
 `<result_dir>/<job_id>_results.zip`; if absent it builds the zip **natively in Rust**
-([`artifacts/bundle.rs`](../crates/kinesin-runtime/src/artifacts/bundle.rs), on a blocking thread,
+([`artifacts/bundle.rs`](../crates/tubulin-runtime/src/artifacts/bundle.rs), on a blocking thread,
 serialized behind `AppState::bundle_lock` so concurrent requests can't corrupt one
 `.partial`) from `<job_id>_bundle.json` — expanding the manifest's directory globs
 (Python-glob semantics: `*` skips dotfiles, directories are skipped, relative entries
 resolve against the project root) — then streams it.
 
 Result previews (`/preview` and slot-bound table widgets) read parquet **natively in
-Rust** ([`artifacts/parquet.rs`](../crates/kinesin-runtime/src/artifacts/parquet.rs)) — no subprocess. Only
-non-parquet formats (csv/ipc) fall back to `python -m kinesin.preview`. Uploads are
+Rust** ([`artifacts/parquet.rs`](../crates/tubulin-runtime/src/artifacts/parquet.rs)) — no subprocess. Only
+non-parquet formats (csv/ipc) fall back to `python -m tubulin.preview`. Uploads are
 streamed straight to disk (a guard removes the partial file if the client aborts), and
 text-ish responses are gzip/br-compressed (already-compressed zips and binary result
 files are exempt).

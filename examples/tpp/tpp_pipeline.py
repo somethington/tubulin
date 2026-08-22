@@ -584,7 +584,7 @@ def normality_table(averaged_table, transforms=None):
 def run(
     tsv_path,
     meta_path,
-    mode="kinesin",
+    mode="tubulin",
     seed=DEFAULTS["seed"],
     normalize=DEFAULTS["normalize"],
     r2_threshold=DEFAULTS["r2_threshold"],

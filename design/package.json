@@ -1,8 +1,8 @@
 {
-  "name": "@kinesin/design",
+  "name": "@tubulin/design",
   "version": "0.1.0",
   "private": true,
-  "description": "Kinesin design system — dependency-free CSS tokens (light/dark) and a Plotly theme. The whole app restyles by editing these.",
+  "description": "Tubulin design system — dependency-free CSS tokens (light/dark) and a Plotly theme. The whole app restyles by editing these.",
   "type": "module",
   "exports": {
     "./tokens.css": "./tokens.css",

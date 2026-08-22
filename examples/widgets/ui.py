@@ -1,6 +1,6 @@
-"""A gallery of every Kinesin widget and layout container, in one runnable app.
+"""A gallery of every Tubulin widget and layout container, in one runnable app.
 
-    kinesin run examples/widgets/ui.py
+    tubulin run examples/widgets/ui.py
 
 Nothing here is scientifically interesting — it exists so you can see what the
 framework offers, and so a change to the widget layer has one place that exercises
@@ -10,7 +10,7 @@ all of it. Each section names the call that produced it.
 import json
 import math
 
-from kinesin import App
+from tubulin import App
 
 app = App("Widget Gallery")
 

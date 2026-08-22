@@ -1,7 +1,7 @@
-/* Theme tokens (light + dark) live in the @kinesin/design package — the single
+/* Theme tokens (light + dark) live in the @tubulin/design package — the single
    source of truth. Restyle the whole app by editing design/tokens.css; toggle dark
    by setting data-theme="dark" on <html>. */
-@import "@kinesin/design/tokens.css";
+@import "@tubulin/design/tokens.css";
 
 * {
   box-sizing: border-box;

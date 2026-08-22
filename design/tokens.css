@@ -1,5 +1,5 @@
 /* ============================================================
-   Kinesin — design tokens
+   Tubulin — design tokens
    Drop into styles.css (or @import it). The whole app restyles
    by editing these custom properties. Light is the default;
    dark activates under [data-theme="dark"] on <html> or <body>.
