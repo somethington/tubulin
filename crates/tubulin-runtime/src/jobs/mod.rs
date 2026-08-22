@@ -6,10 +6,10 @@ mod sharded;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use tubulin_protocol::{JobDef, JobStatus, ServerMessage};
 use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Semaphore;
+use tubulin_protocol::{JobDef, JobStatus, ServerMessage};
 
 use crate::config::Config;
 use crate::workers::forkserver::ForkServerManager;

@@ -1,4 +1,4 @@
-.PHONY: install wheel format-rust format-python format-all lint-rust lint-python lint-frontend lint-all test-rust test-python test-frontend test-all check
+.PHONY: install wheel sdist stage-frontend format-rust format-python format-all lint-rust lint-python lint-frontend lint-all test-rust test-python test-frontend test-all check
 
 PY := .venv/bin/python
 
@@ -9,12 +9,21 @@ install:
 # ------------- packaging -------------
 # One wheel carrying the Rust binary, the Python package, and the built frontend, so
 # `pip install tubulin` needs neither a Rust toolchain nor node.
-wheel:
+wheel: stage-frontend
+	uvx maturin build --release --out dist
+	@echo "built:" && ls -la dist/*.whl
+
+# The sdist carries the built frontend too — a source build has no node, so without
+# this a `pip install` from sdist compiles a runtime that serves 404 for every page.
+sdist: stage-frontend
+	uvx maturin sdist --out dist
+	@echo "built:" && ls -la dist/*.tar.gz
+
+# Both distributions need frontend/dist staged where `[tool.maturin] include` looks.
+stage-frontend:
 	cd frontend && npm ci && npm run build
 	rm -rf python/tubulin/_frontend
 	cp -R frontend/dist python/tubulin/_frontend
-	uvx maturin build --release --out dist
-	@echo "built:" && ls -la dist/*.whl
 
 # ------------- formatting --------------
 format-rust:
@@ -26,7 +35,10 @@ format-python:
 format-all: format-rust format-python
 
 # ------------- linting ---------------
+# `fmt --check` belongs here, not just in `format-rust`: CI's rust job runs it as a
+# gate, so `make lint-all` has to fail on the same thing CI fails on.
 lint-rust:
+	cargo fmt --check
 	cargo clippy --all-targets -- -D warnings
 
 lint-python:

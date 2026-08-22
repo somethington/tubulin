@@ -29,10 +29,15 @@ pub async fn serve(state: Arc<AppState>) -> anyhow::Result<()> {
         ServeDir::new(&state.config.frontend_dir).not_found_service(ServeFile::new(index));
 
     if !state.config.frontend_dir.exists() {
-        warn!(
-            dir = %state.config.frontend_dir.display(),
-            "frontend build not found — run `cd frontend && npm run build`"
-        );
+        // `npm run build` is only actionable in a checkout; an installed wheel carries
+        // its frontend, so a missing one there means a broken install, not a missing step.
+        let fix = if state.config.is_source_checkout() {
+            "run `cd frontend && npm run build`"
+        } else {
+            "this install is incomplete; reinstall it, or point TUBULIN_FRONTEND \
+             at a built frontend directory"
+        };
+        warn!(dir = %state.config.frontend_dir.display(), "frontend build not found — {fix}");
     }
 
     let app = Router::new()

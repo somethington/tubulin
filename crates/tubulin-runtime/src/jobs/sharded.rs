@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use tubulin_protocol::{JobStatus, WorkerMessage};
 use serde_json::json;
 use tokio::sync::Semaphore;
+use tubulin_protocol::{JobStatus, WorkerMessage};
 
 use crate::config::Config;
 use crate::workers::forkserver::ForkServerManager;

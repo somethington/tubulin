@@ -4,12 +4,41 @@ version = "0.1.0"
 description = "Python-first scientific application framework powered by a Rust runtime"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["dataframe", "scientific-computing", "web-framework", "rust", "dashboard"]
 dependencies = [
     "polars>=0.20",
     "pyarrow>=14",
     "pydantic>=2",
 ]
+
+# Only wheels are published per platform; the sdist needs a Rust toolchain (see
+# release.yml). The OS classifiers therefore name what ships, not what could build:
+# the runtime does not compile for Windows today (workers/socket.rs is Unix-socket
+# based), so no Windows wheel exists.
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: User Interfaces",
+]
+
+[project.urls]
+Homepage = "https://github.com/somethington/tubulin"
+Repository = "https://github.com/somethington/tubulin"
+Documentation = "https://github.com/somethington/tubulin/tree/main/docs"
+Issues = "https://github.com/somethington/tubulin/issues"
 
 # maturin, not hatchling: the wheel has to carry the compiled `tubulin` binary as well
 # as the Python package, so that `pip install tubulin` gives you a working `tubulin run`
@@ -23,9 +52,12 @@ build-backend = "maturin"
 manifest-path = "crates/tubulin-runtime/Cargo.toml"
 bindings = "bin"
 python-source = "python"
-# The built frontend is staged into python/tubulin/_frontend by `make wheel`; the
-# runtime finds it there when it can't see a source checkout (see config/mod.rs).
-include = [{ path = "python/tubulin/_frontend/**/*", format = "wheel" }]
+# The built frontend is staged into python/tubulin/_frontend by `make wheel` / `make
+# sdist`; the runtime finds it there when it can't see a source checkout (see
+# config/mod.rs). It goes into the *sdist* as well as the wheel on purpose: a source
+# build has no node, so without this an sdist install would compile a runtime that
+# serves 404 for every page.
+include = [{ path = "python/tubulin/_frontend/**/*", format = "sdist" }, { path = "python/tubulin/_frontend/**/*", format = "wheel" }]
 
 [tool.uv]
 package = true

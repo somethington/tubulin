@@ -16,8 +16,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use tubulin_protocol::ServerMessage;
 use tracing::{info, warn};
+use tubulin_protocol::ServerMessage;
 
 use crate::registry;
 use crate::state::AppState;

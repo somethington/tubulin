@@ -2,9 +2,9 @@ pub mod forkserver;
 mod process;
 mod socket;
 
-use tubulin_protocol::{JobDef, WorkerMessage};
 use serde_json::Value;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt};
+use tubulin_protocol::{JobDef, WorkerMessage};
 
 use crate::config::Config;
 use forkserver::ForkServerManager;

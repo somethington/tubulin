@@ -77,8 +77,14 @@ that environment's `python`. The runtime resolves, in order:
 | Frontend | `<root>/frontend/dist` | `tubulin/_frontend/` inside the installed package |
 
 `TUBULIN_PYTHON` and `TUBULIN_FRONTEND` override the first and last. Build a wheel
-locally with `make wheel` (builds the frontend, stages it into the package, runs
-maturin).
+locally with `make wheel`, or a source distribution with `make sdist`; both build the
+frontend and stage it into the package before running maturin. The sdist carries the
+built frontend deliberately — a source build has no node, so an sdist without it would
+install a runtime that serves 404 for every page.
+
+If the frontend directory is missing, the runtime warns and serves the API anyway. The
+advice it prints depends on which shape it is in: a checkout is told to run the npm
+build, an installed one is told its install is incomplete.
 
 ## What an app needs at runtime
 

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
 use futures::{SinkExt, StreamExt};
-use tubulin_protocol::{ClientMessage, ServerMessage};
 use tracing::{debug, info};
+use tubulin_protocol::{ClientMessage, ServerMessage};
 use uuid::Uuid;
 
 use crate::http::events::handle_client_message;

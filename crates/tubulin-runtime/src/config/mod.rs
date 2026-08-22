@@ -92,6 +92,13 @@ impl Config {
         cmd
     }
 
+    /// Whether we're running from a source checkout rather than an installed wheel.
+    /// `pythonpath` is the discriminator: it is set only when `python/tubulin/` sits
+    /// next to us. The two shapes need different advice when something is missing.
+    pub fn is_source_checkout(&self) -> bool {
+        self.pythonpath.is_some()
+    }
+
     /// Create the storage directories if they don't already exist.
     pub fn ensure_dirs(&self) -> anyhow::Result<()> {
         for dir in [&self.upload_dir, &self.result_dir, &self.cache_dir] {

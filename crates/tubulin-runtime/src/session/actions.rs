@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use tubulin_protocol::{ArgSpec, Binding};
 use serde_json::Value;
+use tubulin_protocol::{ArgSpec, Binding};
 
 use crate::jobs::JobSink;
 use crate::session::Session;

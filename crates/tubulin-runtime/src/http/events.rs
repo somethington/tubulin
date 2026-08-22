@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use tubulin_protocol::{ActionSpec, AppSpec, ClientMessage, ServerMessage};
 use serde_json::{json, Map, Value};
+use tubulin_protocol::{ActionSpec, AppSpec, ClientMessage, ServerMessage};
 use uuid::Uuid;
 
 use crate::jobs::JobRequest;

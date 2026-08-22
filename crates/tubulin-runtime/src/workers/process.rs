@@ -1,9 +1,9 @@
 use std::process::Stdio;
 use std::time::Duration;
 
-use tubulin_protocol::{WorkerMessage, WorkerResult};
 use serde_json::Value;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
+use tubulin_protocol::{WorkerMessage, WorkerResult};
 
 use crate::config::Config;
 

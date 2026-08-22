@@ -357,18 +357,34 @@ the microtubule — the track a kinesin motor walks along — so the metaphor st
 **Not done:** the package has never been published, so `pip install tubulin` does not
 work yet — it needs a PyPI project and the `pypi` environment configured on the repo.
 
-**Also still open on the packaging path**, found in the same review:
-- **The sdist ships without a frontend.** `[tool.maturin] include` scopes `_frontend` to
-  `format = "wheel"`, and the `sdist` job in `release.yml` never builds it. Any install
-  that falls back to source (Windows, musl, i686, `--no-binary`) needs a Rust toolchain
-  *and* then serves 404 for every page, logging advice (`run 'cd frontend && npm run build'`)
-  that makes no sense to a pip user. Either don't publish the sdist, or make a missing
-  frontend a hard startup error.
-- **No Windows wheel.** The matrix is Linux x86_64/aarch64 + macOS x86_64/arm64, so
-  Windows users hit the broken-sdist path above. `config/mod.rs` already carries a
-  `#[cfg(windows)]` interpreter branch, so this is a matrix decision, not a port.
-- **Bare PyPI metadata.** No `classifiers`, no `[project.urls]`, no keywords; the
-  `license = { text = "MIT" }` form is the deprecated pre-PEP-639 spelling.
+**Fixed in the same pass**, from the review that found the name collision:
+- **The sdist shipped without a frontend** — `include` scoped `_frontend` to
+  `format = "wheel"` and the `sdist` job never built it, so any source-fallback install
+  compiled a runtime that served 404 for every page. The sdist now carries the built
+  frontend (`make sdist`, and a node step in the workflow's sdist job), and CI asserts
+  `_frontend/index.html` is inside the tarball before it can be published. Verified by
+  building a wheel *from the sdist alone*, with no node and outside the repo.
+- **The missing-frontend warning was wrong for installed users** — it said
+  `run 'cd frontend && npm run build'`, which a pip user cannot act on. The message now
+  branches on `Config::is_source_checkout()`, the named form of the `pythonpath`
+  discriminator that already distinguished the two deployment shapes.
+- **Bare PyPI metadata** — added classifiers, `[project.urls]`, and keywords, and moved
+  `license = { text = "MIT" }` to the PEP 639 `license = "MIT"` + `license-files` form.
+  That also fixed a real mismatch: `PKG-INFO` advertised `License-File: LICENSE` while
+  the sdist contained no `LICENSE`. `twine check` passes on both distributions.
+  Note the SPDX expression and a `License ::` classifier are mutually exclusive under
+  PEP 639 — carrying both makes PyPI reject the upload.
+
+**Windows is not a matrix row — it is a port.** The obvious reading of "no Windows
+wheel" is that the release matrix is missing an entry. It isn't: `workers/socket.rs`
+is compiled unconditionally and builds on `tokio::net::UnixStream`, which does not
+exist on Windows (verified — a minimal probe crate fails to resolve it for
+`x86_64-pc-windows-msvc`). The fork-server is already gated to Linux and
+`config/mod.rs` already has a `#[cfg(windows)]` interpreter branch, so the remaining
+work is the socket transport: gate `mod socket` behind `#[cfg(unix)]` and let Windows
+fall back to the per-job process transport. Until someone does that and can test it on
+a real Windows runner, adding the matrix row would only turn the release workflow red.
+The classifiers name Linux and macOS only, so the exclusion is at least declared.
 
 ---
 

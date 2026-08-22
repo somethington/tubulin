@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use tubulin_protocol::{JobStatus, WorkerMessage};
 use serde_json::json;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
+use tubulin_protocol::{JobStatus, WorkerMessage};
 
 use crate::config::Config;
 use crate::workers::forkserver::ForkServerManager;

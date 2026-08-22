@@ -81,5 +81,9 @@ Prefer `tubulin.testing.run_app(ui_path, inputs={...}, shards=N)` for job/regres
   interpreter, `PYTHONPATH`, and the frontend directory differently (`config/mod.rs`);
   every Python spawn goes through `Config::python_command()` so the two stay in step.
   Changing how Python is launched means changing that one method, not four call sites.
+  `Config::is_source_checkout()` is the named test for which shape you're in — use it
+  rather than re-deriving it, e.g. before telling the user to run a build step they
+  only have in a checkout. Both shapes ship a frontend: `make wheel` and `make sdist`
+  stage `frontend/dist` into `python/tubulin/_frontend` first.
 - This is a deliberate **single-tenant prototype**: no auth, no fair-share scheduling, in-memory queue, file routes scoped only to the project root. These gaps are documented in `docs/architecture.md#limitations` and `docs/roadmap.md` — don't "fix" them in passing, and don't build on assumptions of multi-tenancy.
 - The `docs/` directory is maintained deliberately and per-module; when changing behavior, update the matching doc.
