@@ -1,4 +1,4 @@
-.PHONY: install wheel sdist stage-frontend format-rust format-python format-all lint-rust lint-python lint-frontend lint-all test-rust test-python test-frontend test-all check
+.PHONY: install wheel sdist stage-frontend build-frontend smoke-wheel smoke-sdist format-rust format-python format-all lint-rust lint-python lint-frontend lint-all test-rust test-python test-frontend test-all check
 
 PY := .venv/bin/python
 
@@ -20,10 +20,20 @@ sdist: stage-frontend
 	@echo "built:" && ls -la dist/*.tar.gz
 
 # Both distributions need frontend/dist staged where `[tool.maturin] include` looks.
-stage-frontend:
-	cd frontend && npm ci && npm run build
+stage-frontend: build-frontend
 	rm -rf python/tubulin/_frontend
 	cp -R frontend/dist python/tubulin/_frontend
+
+build-frontend:
+	cd frontend && npm ci && npm run build
+
+# Prove a built distribution runs before it can be published: clean venv outside the
+# repo, real app, and the frontend's assets actually served (see scripts/smoke-dist.sh).
+smoke-wheel:
+	./scripts/smoke-dist.sh $(firstword $(wildcard dist/*.whl))
+
+smoke-sdist:
+	./scripts/smoke-dist.sh $(firstword $(wildcard dist/*.tar.gz))
 
 # ------------- formatting --------------
 format-rust:

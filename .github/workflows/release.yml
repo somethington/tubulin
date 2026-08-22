@@ -48,25 +48,11 @@ jobs:
           args: --release --out dist --target ${{ matrix.target }}
           manylinux: auto
 
-      # Prove the wheel actually runs before it can ever be published: install it into
-      # a clean environment and start an app with no TUBULIN_* env set.
+      # Prove the wheel actually runs before it can ever be published. Shared with CI
+      # (`make smoke-wheel`) so the release gate and the PR gate can't drift apart.
       - name: smoke test the wheel
         shell: bash
-        run: |
-          python3 -m venv /tmp/smoke
-          /tmp/smoke/bin/pip install --upgrade pip
-          /tmp/smoke/bin/pip install dist/*.whl
-          mkdir -p /tmp/smokeapp
-          cp examples/widgets/ui.py /tmp/smokeapp/
-          cd /tmp/smokeapp
-          /tmp/smoke/bin/tubulin run ui.py --port 5599 --no-reload &
-          for _ in $(seq 1 60); do
-            curl -sf http://127.0.0.1:5599/health && break || sleep 1
-          done
-          curl -sf http://127.0.0.1:5599/health | tee health.json
-          grep -q '"status":"ok"' health.json
-          # The frontend must come from inside the wheel, not a source checkout.
-          curl -sf http://127.0.0.1:5599/ | grep -q '<div id="root">'
+        run: ./scripts/smoke-dist.sh "$(ls dist/*.whl | head -1)"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -97,8 +83,12 @@ jobs:
           args: --out dist
 
       - name: the sdist must carry the frontend
-        run: |
-          tar tzf dist/*.tar.gz | grep -q '_frontend/index.html'
+        run: tar tzf dist/*.tar.gz | grep -q '_frontend/index.html'
+
+      # CI only checks the sdist structurally, because building it recompiles the
+      # runtime from scratch. Before publishing, actually build and run it.
+      - name: smoke test the sdist
+        run: ./scripts/smoke-dist.sh "$(ls dist/*.tar.gz | head -1)"
 
       - uses: actions/upload-artifact@v4
         with:

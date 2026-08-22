@@ -402,10 +402,34 @@ test covering real polars-parquet compatibility was `#[ignore]`d behind a
 ever run on the machine where it was written.
 
 **Shipped:**
-- **[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)** — three jobs mirroring
-  the `make` targets: rust (`fmt --check`, `clippy -D warnings`, `cargo test --all`),
-  python (`ruff check`, the framework suite **and** the TPP integration test), frontend
-  (`tsc --noEmit`, `npm test`, `npm run build`).
+- **[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)** — four jobs that
+  *invoke* the `make` targets rather than restating them: rust (`make lint-rust`,
+  `make test-rust`), python (`make lint-python`, `make test-python`, across 3.10 and
+  3.13), frontend (`make lint-frontend`, `make test-frontend`, `make build-frontend`),
+  and packaging (below).
+
+  "Mirroring" the targets by hand is what the first version did, and it drifted:
+  CI gated on `cargo fmt --all -- --check` while `make lint-all` never ran rustfmt at
+  all, so the tubulin rename reordered imports, passed `make lint-all` locally, and
+  would have failed CI. Invoking the targets makes that class of divergence
+  impossible — and `lint-rust` now runs `fmt --check` itself.
+
+- **Packaging runs on every PR** — `make wheel`, `make sdist`, an assertion that both
+  carry `_frontend/index.html`, `twine check`, and a clean-venv smoke test of the
+  wheel. Packaging used to be exercised only on a `v*` tag, which is precisely how the
+  frontend-less sdist survived: nothing built one until release day. The Python
+  matrix exists for the same reason — `requires-python = ">=3.10"` was a claim no job
+  tested.
+
+- **[`scripts/smoke-dist.sh`](../scripts/smoke-dist.sh)** — one smoke test shared by CI
+  and the release workflow. It installs a distribution into a throwaway venv *outside*
+  the repo with no `TUBULIN_*` env set, starts a real app, and checks `/health`,
+  `index.html`, **and that the referenced JS and CSS assets return 200**. That last
+  part is the point: a frontend-less install answers `/health` perfectly well, so a
+  health check alone would have passed the exact bug this is here to catch. Verified
+  against a deliberately broken sdist — it fails, as it should. CI smoke-tests the
+  wheel and checks the sdist structurally (building an sdist recompiles the runtime
+  from scratch); release.yml runs the full smoke test on both before publishing.
 - **Committed parquet fixture** — [`tests/fixtures/polars_written.parquet`](../tests/fixtures/polars_written.parquet)
   (1.4 KB, zstd) plus the script that regenerates it. `reads_polars_written_parquet`
   dropped its `#[ignore]` and env var; the compatibility this roadmap advertised as

@@ -25,12 +25,15 @@ cd frontend && npm install && npm run build
 cd frontend && npm test           # vitest + happy-dom; src/**/*.test.tsx
 cd frontend && npx vitest run src/layout.test.ts   # one file
 
-# Build a distributable wheel (Rust binary + Python package + frontend)
+# Build a distributable wheel / sdist (Rust binary + Python package + frontend)
 make wheel                        # -> dist/tubulin-*.whl
+make sdist                        # -> dist/tubulin-*.tar.gz (also carries the frontend)
+make smoke-wheel                  # install it in a clean venv and drive a real app
 
-# Everything CI runs
+# Everything CI runs. CI invokes these same targets, so if they pass, CI passes —
+# don't add a check to one side only, that drift is what shipped a broken fmt gate.
 make test-all                     # cargo test + pytest (incl. TPP) + vitest
-make lint-all                     # clippy -D warnings + ruff + tsc --noEmit
+make lint-all                     # cargo fmt --check + clippy -D warnings + ruff + tsc
 
 # Run an example app end-to-end (dev). Saves to any .py under the app's directory
 # re-register it and push a new UI tree; --no-reload turns that off.
