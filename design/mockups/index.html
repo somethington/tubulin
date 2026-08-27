@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tubulin — Design Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#eceff3;color:#16181d}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:980px;margin:0 auto;padding:64px 32px 96px}
+  .step{position:relative;width:34px;height:34px;flex:none}
+  .step i{position:absolute;width:11px;height:11px;background:#e35d2b;border-radius:2.5px}
+  .card{display:flex;flex-direction:column;background:#fff;border:1px solid #e6eaef;border-radius:14px;overflow:hidden;transition:transform .14s ease,box-shadow .14s ease}
+  .card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(16,24,40,.12)}
+  .thumb{height:150px;border-bottom:1px solid #eef1f4;position:relative;overflow:hidden}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+  .file{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid #e6eaef;border-radius:10px;background:#fff}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+      <div class="step">
+        <i style="left:0;bottom:0"></i>
+        <i style="left:11.5px;bottom:11.5px;opacity:.66"></i>
+        <i style="left:23px;bottom:23px;opacity:.4"></i>
+      </div>
+      <div>
+        <div style="font:700 26px/1 'Space Grotesk';letter-spacing:-.02em">Tubulin</div>
+        <div style="font:500 13px/1.3 'IBM Plex Sans';color:#5b6470;margin-top:4px">Design Kit · v0.1</div>
+      </div>
+    </header>
+    <p style="max-width:600px;font:400 15px/1.6 'IBM Plex Sans';color:#5b6470;margin:0 0 40px">
+      A dependency-free theme for the Tubulin runtime. Open any view below, or wire
+      <span style="font-family:'IBM Plex Mono';font-size:13px">tokens.css</span> straight into your app's
+      <span style="font-family:'IBM Plex Mono';font-size:13px">styles.css</span>.
+    </p>
+
+    <div class="grid" style="margin-bottom:44px">
+      <a class="card" href="Tubulin Design System.dc.html">
+        <div class="thumb" style="background:#fff">
+          <div style="position:absolute;inset:0;padding:18px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:6px"><span style="width:22px;height:22px;border-radius:5px;background:#e35d2b"></span><span style="width:22px;height:22px;border-radius:5px;background:#2b7a9e"></span><span style="width:22px;height:22px;border-radius:5px;background:#7c5cbf"></span><span style="width:22px;height:22px;border-radius:5px;background:#1a8a4f"></span></div>
+            <div style="font:700 26px/1 'Space Grotesk';margin-top:6px">Aa</div>
+            <div style="font:400 11px/1 'IBM Plex Mono';color:#8a929e">Space Grotesk · IBM Plex</div>
+          </div>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="font:600 15px/1.2 'Space Grotesk'">Design System</div>
+          <div style="font:400 13px/1.5 'IBM Plex Sans';color:#5b6470;margin-top:5px">Tokens, type, states &amp; all 14 widgets</div>
+        </div>
+      </a>
+
+      <a class="card" href="Tubulin App.dc.html">
+        <div class="thumb" style="background:#0f1115">
+          <div style="position:absolute;inset:0;display:flex">
+            <div style="width:52px;background:#12151a;border-right:1px solid #262b33;padding:12px 8px;display:flex;flex-direction:column;gap:6px"><span style="height:6px;width:70%;border-radius:3px;background:#f1703c"></span><span style="height:6px;width:85%;border-radius:3px;background:#262b33"></span><span style="height:6px;width:75%;border-radius:3px;background:#262b33"></span></div>
+            <div style="flex:1;padding:14px;display:flex;flex-direction:column;gap:8px"><span style="font:600 13px/1 'Space Grotesk';color:#e8ebef">Differential expression</span><div style="display:flex;align-items:flex-end;gap:5px;height:54px"><span style="flex:1;height:50%;background:#f1703c;border-radius:2px 2px 0 0"></span><span style="flex:1;height:80%;background:#2b7a9e;border-radius:2px 2px 0 0"></span><span style="flex:1;height:62%;background:#f1703c;border-radius:2px 2px 0 0"></span><span style="flex:1;height:90%;background:#2b7a9e;border-radius:2px 2px 0 0"></span></div></div>
+          </div>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="font:600 15px/1.2 'Space Grotesk'">App Mockup</div>
+          <div style="font:400 13px/1.5 'IBM Plex Sans';color:#5b6470;margin-top:5px">Full layout · live light ↔ dark toggle</div>
+        </div>
+      </a>
+
+      <a class="card" href="Tubulin Landing.dc.html">
+        <div class="thumb" style="background:#fff">
+          <div style="position:absolute;inset:0;padding:18px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+            <div style="font:700 22px/1.05 'Space Grotesk';letter-spacing:-.02em">Data apps<br>built to scale.</div>
+            <div style="display:flex;gap:8px;margin-top:4px"><span style="font:600 10px/1 'IBM Plex Sans';color:#fff;background:#e35d2b;padding:7px 11px;border-radius:6px">Start</span><span style="font:600 10px/1 'IBM Plex Sans';color:#16181d;border:1px solid #d9dee4;padding:7px 11px;border-radius:6px">Docs</span></div>
+          </div>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="font:600 15px/1.2 'Space Grotesk'">Landing Page</div>
+          <div style="font:400 13px/1.5 'IBM Plex Sans';color:#5b6470;margin-top:5px">Marketing site for the framework</div>
+        </div>
+      </a>
+    </div>
+
+    <div style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.14em;color:#8a929e;margin-bottom:14px">ASSETS</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="file"><span style="font:600 12px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:5px 8px;border-radius:5px">CSS</span><span style="font:500 13px/1 'IBM Plex Mono'">tokens.css</span><span style="font:400 13px/1 'IBM Plex Sans';color:#8a929e;margin-left:auto">Light + dark custom properties for styles.css</span></div>
+      <div class="file"><span style="font:600 12px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:5px 8px;border-radius:5px">JS</span><span style="font:500 13px/1 'IBM Plex Mono'">plotly-theme.js</span><span style="font:400 13px/1 'IBM Plex Sans';color:#8a929e;margin-left:auto">Matching Plotly layout + colorway</span></div>
+      <div class="file"><span style="font:600 12px/1 'IBM Plex Mono';color:#5b6470;background:#eef1f4;padding:5px 8px;border-radius:5px">MD</span><span style="font:500 13px/1 'IBM Plex Mono'">README.md</span><span style="font:400 13px/1 'IBM Plex Sans';color:#8a929e;margin-left:auto">How everything maps to your codebase</span></div>
+    </div>
+
+  </div>
+</body>
+</html>

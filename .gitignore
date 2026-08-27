@@ -1,0 +1,29 @@
+# Rust
+/target
+**/target
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.uv/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Wheel build staging (`make wheel` copies frontend/dist here) and output
+python/tubulin/_frontend/
+/dist/
+
+# Storage artifacts (keep the dirs, ignore contents)
+storage/uploads/*
+storage/results/*
+storage/cache/*
+!storage/uploads/.gitkeep
+!storage/results/.gitkeep
+!storage/cache/.gitkeep
+
+# OS
+.DS_Store

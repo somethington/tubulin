@@ -1,0 +1,17 @@
+sample_id,gene,expression,condition,replicate
+S001,BRCA1,12.4,control,1
+S002,BRCA1,11.9,control,2
+S003,BRCA1,18.7,treated,1
+S004,BRCA1,19.2,treated,2
+S005,TP53,8.1,control,1
+S006,TP53,7.6,control,2
+S007,TP53,9.4,treated,1
+S008,TP53,10.1,treated,2
+S009,EGFR,22.3,control,1
+S010,EGFR,21.8,control,2
+S011,EGFR,15.2,treated,1
+S012,EGFR,14.9,treated,2
+S013,MYC,30.5,control,1
+S014,MYC,31.2,control,2
+S015,MYC,27.8,treated,1
+S016,MYC,26.4,treated,2

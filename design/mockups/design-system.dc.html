@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#eceff3;color:#16181d}
+  ::selection{background:#fbd9c8;color:#16181d}
+  @keyframes kxpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.82)}}
+</style>
+</helmet>
+
+<div style="max-width:1180px;margin:0 auto;padding:56px 40px 96px">
+
+  <!-- ===== MASTHEAD ===== -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="position:relative;width:34px;height:34px;flex:none">
+        <div style="position:absolute;left:0;bottom:0;width:11px;height:11px;background:#e35d2b;border-radius:2.5px"></div>
+        <div style="position:absolute;left:11.5px;bottom:11.5px;width:11px;height:11px;background:#e35d2b;border-radius:2.5px;opacity:.66"></div>
+        <div style="position:absolute;left:23px;bottom:23px;width:11px;height:11px;background:#e35d2b;border-radius:2.5px;opacity:.4"></div>
+      </div>
+      <div>
+        <div style="font:700 26px/1 'Space Grotesk';letter-spacing:-.02em">Tubulin</div>
+        <div style="font:500 13px/1.3 'IBM Plex Sans';color:#5b6470;margin-top:4px">Design system &amp; component spec</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font:500 12px/1 'IBM Plex Mono';color:#5b6470;border:1px solid #d9dee4;padding:7px 10px;border-radius:6px;background:#fff">v0.1 · tokens</span>
+      <span style="font:500 12px/1 'IBM Plex Mono';color:#e35d2b;border:1px solid #f3cdbb;padding:7px 10px;border-radius:6px;background:#fdf1ea">light + dark</span>
+    </div>
+  </div>
+  <p style="max-width:620px;font:400 15px/1.6 'IBM Plex Sans';color:#5b6470;margin:0 0 44px">A dependency-free theme for the Tubulin runtime — built for bioinformatics &amp; data-science workflows. Everything below maps to CSS custom properties; restyle the whole app by editing the tokens.</p>
+
+  <!-- ===== 01 BRAND ===== -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b">01 — IDENTITY</span>
+    <span style="flex:1;height:1px;background:#dde2e8"></span>
+  </div>
+  <h2 style="font:600 24px/1.15 'Space Grotesk';letter-spacing:-.01em;margin:0 0 18px">The mark</h2>
+  <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:18px;margin-bottom:56px">
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:26px;display:flex;flex-direction:column;justify-content:space-between">
+      <div style="position:relative;width:58px;height:58px;margin-bottom:24px">
+        <div style="position:absolute;left:0;bottom:0;width:19px;height:19px;background:#e35d2b;border-radius:4px"></div>
+        <div style="position:absolute;left:19.5px;bottom:19.5px;width:19px;height:19px;background:#e35d2b;border-radius:4px;opacity:.66"></div>
+        <div style="position:absolute;left:39px;bottom:39px;width:19px;height:19px;background:#e35d2b;border-radius:4px;opacity:.4"></div>
+      </div>
+      <div>
+        <div style="font:600 15px/1.3 'Space Grotesk';margin-bottom:6px">Ascending steps</div>
+        <div style="font:400 13px/1.55 'IBM Plex Sans';color:#5b6470">Identical tubulin dimers stack head-to-tail into the microtubule that motors haul cargo along. The staircase encodes self-assembly from uniform parts, and the scale that follows.</div>
+      </div>
+    </div>
+    <div style="background:#16181d;border:1px solid #16181d;border-radius:12px;padding:26px;display:flex;flex-direction:column;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:24px">
+        <div style="position:relative;width:28px;height:28px;flex:none">
+          <div style="position:absolute;left:0;bottom:0;width:9px;height:9px;background:#f1703c;border-radius:2px"></div>
+          <div style="position:absolute;left:9.5px;bottom:9.5px;width:9px;height:9px;background:#f1703c;border-radius:2px;opacity:.66"></div>
+          <div style="position:absolute;left:19px;bottom:19px;width:9px;height:9px;background:#f1703c;border-radius:2px;opacity:.4"></div>
+        </div>
+        <span style="font:700 22px/1 'Space Grotesk';color:#fff;letter-spacing:-.02em">Tubulin</span>
+      </div>
+      <div style="font:400 13px/1.55 'IBM Plex Sans';color:#9aa3af">Reversed lockup on <span style="font-family:'IBM Plex Mono';color:#cfd5dc">--bg</span> dark. Mark brightens to <span style="font-family:'IBM Plex Mono';color:#f1703c">#f1703c</span> for AA contrast.</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:26px;display:flex;flex-direction:column;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px">
+        <span style="font:600 19px/1 'Space Grotesk';letter-spacing:-.02em">Tubulin</span>
+        <span style="font:400 13px/1 'IBM Plex Mono';color:#8a929e">tubulin · /kɪˈniːsɪn/</span>
+      </div>
+      <div style="font:400 13px/1.55 'IBM Plex Sans';color:#5b6470">Wordmark set in Space Grotesk 700, −2% tracking. Always pair with the mark at small sizes; wordmark alone above 18px.</div>
+    </div>
+  </div>
+
+  <!-- ===== 02 COLOR ===== -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b">02 — COLOR</span>
+    <span style="flex:1;height:1px;background:#dde2e8"></span>
+  </div>
+  <h2 style="font:600 24px/1.15 'Space Grotesk';letter-spacing:-.01em;margin:0 0 18px">Surface tokens — light &amp; dark</h2>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+    <!-- light table -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid #eef1f4;display:flex;align-items:center;gap:8px">
+        <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:1px solid #d9dee4"></span>
+        <span style="font:600 13px/1 'IBM Plex Sans'">Light</span>
+        <span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e">:root</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px"><span style="width:30px;height:30px;border-radius:6px;background:#ffffff;border:1px solid #d9dee4;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1">--bg</span><span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e">#ffffff</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #f3f5f8"><span style="width:30px;height:30px;border-radius:6px;background:#f4f6f8;border:1px solid #e6eaef;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1">--sidebar</span><span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e">#f4f6f8</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #f3f5f8"><span style="width:30px;height:30px;border-radius:6px;background:#16181d;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1">--text</span><span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e">#16181d</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #f3f5f8"><span style="width:30px;height:30px;border-radius:6px;background:#5b6470;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1">--muted</span><span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e">#5b6470</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #f3f5f8"><span style="width:30px;height:30px;border-radius:6px;background:#e4e8ec;border:1px solid #d9dee4;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1">--border</span><span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e">#e4e8ec</span></div>
+    </div>
+    <!-- dark table -->
+    <div style="background:#15181e;border:1px solid #262b33;border-radius:12px;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid #262b33;display:flex;align-items:center;gap:8px">
+        <span style="width:14px;height:14px;border-radius:4px;background:#0f1115;border:1px solid #353c46"></span>
+        <span style="font:600 13px/1 'IBM Plex Sans';color:#e8ebef">Dark</span>
+        <span style="font:400 12px/1 'IBM Plex Mono';color:#6b7480">[data-theme=dark]</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px"><span style="width:30px;height:30px;border-radius:6px;background:#0f1115;border:1px solid #353c46;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1;color:#e8ebef">--bg</span><span style="font:400 12px/1 'IBM Plex Mono';color:#6b7480">#0f1115</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #21262e"><span style="width:30px;height:30px;border-radius:6px;background:#12151a;border:1px solid #262b33;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1;color:#e8ebef">--sidebar</span><span style="font:400 12px/1 'IBM Plex Mono';color:#6b7480">#12151a</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #21262e"><span style="width:30px;height:30px;border-radius:6px;background:#e8ebef;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1;color:#e8ebef">--text</span><span style="font:400 12px/1 'IBM Plex Mono';color:#6b7480">#e8ebef</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #21262e"><span style="width:30px;height:30px;border-radius:6px;background:#9aa3af;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1;color:#e8ebef">--muted</span><span style="font:400 12px/1 'IBM Plex Mono';color:#6b7480">#9aa3af</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid #21262e"><span style="width:30px;height:30px;border-radius:6px;background:#262b33;border:1px solid #353c46;flex:none"></span><span style="font:500 13px/1 'IBM Plex Mono';flex:1;color:#e8ebef">--border</span><span style="font:400 12px/1 'IBM Plex Mono';color:#6b7480">#262b33</span></div>
+    </div>
+  </div>
+
+  <!-- primary + functional -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:18px">
+      <div style="font:600 12px/1 'IBM Plex Mono';letter-spacing:.08em;color:#8a929e;margin-bottom:14px">PRIMARY · --primary</div>
+      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid #e6eaef">
+        <div style="flex:1;height:64px;background:#fdf1ea"></div>
+        <div style="flex:1;height:64px;background:#f3b694"></div>
+        <div style="flex:1.4;height:64px;background:#e35d2b"></div>
+        <div style="flex:1;height:64px;background:#c34d20"></div>
+        <div style="flex:1;height:64px;background:#9c3c18"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font:400 11px/1 'IBM Plex Mono';color:#8a929e">
+        <span>soft</span><span>200</span><span style="color:#e35d2b;font-weight:600">#e35d2b</span><span>strong</span><span>deep</span>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:18px">
+      <div style="font:600 12px/1 'IBM Plex Mono';letter-spacing:.08em;color:#8a929e;margin-bottom:14px">STATUS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+        <div><div style="height:40px;border-radius:7px;background:#1a8a4f"></div><div style="font:400 11px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">success<br>#1a8a4f</div></div>
+        <div><div style="height:40px;border-radius:7px;background:#c2992b"></div><div style="font:400 11px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">warn<br>#c2992b</div></div>
+        <div><div style="height:40px;border-radius:7px;background:#c0392b"></div><div style="font:400 11px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">error<br>#c0392b</div></div>
+        <div><div style="height:40px;border-radius:7px;background:#2563eb"></div><div style="font:400 11px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">info<br>#2563eb</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- data viz categorical -->
+  <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:18px;margin-bottom:56px">
+    <div style="font:600 12px/1 'IBM Plex Mono';letter-spacing:.08em;color:#8a929e;margin-bottom:14px">DATA-VIZ CATEGORICAL · plotly template</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:6px;background:#e35d2b"></span><span style="font:400 12px/1 'IBM Plex Mono';color:#5b6470">#e35d2b</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:6px;background:#2b7a9e"></span><span style="font:400 12px/1 'IBM Plex Mono';color:#5b6470">#2b7a9e</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:6px;background:#7c5cbf"></span><span style="font:400 12px/1 'IBM Plex Mono';color:#5b6470">#7c5cbf</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:6px;background:#1a8a4f"></span><span style="font:400 12px/1 'IBM Plex Mono';color:#5b6470">#1a8a4f</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:6px;background:#c2992b"></span><span style="font:400 12px/1 'IBM Plex Mono';color:#5b6470">#c2992b</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:6px;background:#6b7280"></span><span style="font:400 12px/1 'IBM Plex Mono';color:#5b6470">#6b7280</span></div>
+    </div>
+  </div>
+
+  <!-- ===== 03 TYPE ===== -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b">03 — TYPOGRAPHY</span>
+    <span style="flex:1;height:1px;background:#dde2e8"></span>
+  </div>
+  <h2 style="font:600 24px/1.15 'Space Grotesk';letter-spacing:-.01em;margin:0 0 18px">Three families, one voice</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:24px">
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:22px">
+      <div style="font:700 44px/1 'Space Grotesk';letter-spacing:-.02em">Aa</div>
+      <div style="font:600 14px/1 'Space Grotesk';margin-top:18px">Space Grotesk</div>
+      <div style="font:400 12px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">display · headers</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:22px">
+      <div style="font:600 44px/1 'IBM Plex Sans';letter-spacing:-.01em">Aa</div>
+      <div style="font:600 14px/1 'Space Grotesk';margin-top:18px">IBM Plex Sans</div>
+      <div style="font:400 12px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">UI · body</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:22px">
+      <div style="font:500 44px/1 'IBM Plex Mono'">Aa</div>
+      <div style="font:600 14px/1 'Space Grotesk';margin-top:18px">IBM Plex Mono</div>
+      <div style="font:400 12px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:6px">data · values · code</div>
+    </div>
+  </div>
+  <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:26px 28px;margin-bottom:56px">
+    <div style="display:flex;align-items:baseline;gap:16px;padding-bottom:16px;border-bottom:1px solid #f1f4f7"><span style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;width:78px;flex:none">display/40</span><span style="font:700 40px/1.1 'Space Grotesk';letter-spacing:-.02em">Differential expression</span></div>
+    <div style="display:flex;align-items:baseline;gap:16px;padding:16px 0;border-bottom:1px solid #f1f4f7"><span style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;width:78px;flex:none">h1/28</span><span style="font:600 28px/1.2 'Space Grotesk';letter-spacing:-.01em">Pipeline results</span></div>
+    <div style="display:flex;align-items:baseline;gap:16px;padding:16px 0;border-bottom:1px solid #f1f4f7"><span style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;width:78px;flex:none">h3/18</span><span style="font:600 18px/1.3 'IBM Plex Sans'">Alignment parameters</span></div>
+    <div style="display:flex;align-items:baseline;gap:16px;padding:16px 0;border-bottom:1px solid #f1f4f7"><span style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;width:78px;flex:none">body/15</span><span style="font:400 15px/1.6 'IBM Plex Sans';color:#16181d">Select a reference genome and adjust the mismatch tolerance before running the aligner across all sample lanes.</span></div>
+    <div style="display:flex;align-items:baseline;gap:16px;padding-top:16px"><span style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;width:78px;flex:none">mono/13</span><span style="font:400 13px/1.5 'IBM Plex Mono';color:#5b6470">log2FC = 2.41 · padj = 3.2e-09 · n = 1,204</span></div>
+  </div>
+
+  <!-- ===== 04 SPACING / RADIUS / ELEVATION ===== -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b">04 — FOUNDATIONS</span>
+    <span style="flex:1;height:1px;background:#dde2e8"></span>
+  </div>
+  <h2 style="font:600 24px/1.15 'Space Grotesk';letter-spacing:-.01em;margin:0 0 18px">Spacing · radius · elevation</h2>
+  <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:18px;margin-bottom:56px">
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:22px">
+      <div style="font:600 12px/1 'IBM Plex Mono';letter-spacing:.08em;color:#8a929e;margin-bottom:16px">SPACING · 4px base</div>
+      <div style="display:flex;align-items:flex-end;gap:10px;height:56px">
+        <div style="width:4px;height:4px;background:#e35d2b;border-radius:1px"></div>
+        <div style="width:8px;height:8px;background:#e35d2b;border-radius:2px"></div>
+        <div style="width:12px;height:12px;background:#e35d2b;border-radius:2px"></div>
+        <div style="width:16px;height:16px;background:#e35d2b;border-radius:2px"></div>
+        <div style="width:24px;height:24px;background:#e35d2b;border-radius:3px"></div>
+        <div style="width:32px;height:32px;background:#e35d2b;border-radius:4px"></div>
+        <div style="width:48px;height:48px;background:#e35d2b;border-radius:4px"></div>
+      </div>
+      <div style="font:400 11px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:12px">4 · 8 · 12 · 16 · 24 · 32 · 48</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:22px">
+      <div style="font:600 12px/1 'IBM Plex Mono';letter-spacing:.08em;color:#8a929e;margin-bottom:16px">RADIUS</div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <div style="text-align:center"><div style="width:40px;height:40px;background:#f4f6f8;border:1px solid #d9dee4;border-radius:4px"></div><div style="font:400 10px/1.6 'IBM Plex Mono';color:#8a929e">4</div></div>
+        <div style="text-align:center"><div style="width:40px;height:40px;background:#f4f6f8;border:1px solid #d9dee4;border-radius:6px"></div><div style="font:400 10px/1.6 'IBM Plex Mono';color:#8a929e">6</div></div>
+        <div style="text-align:center"><div style="width:40px;height:40px;background:#f4f6f8;border:1px solid #d9dee4;border-radius:10px"></div><div style="font:400 10px/1.6 'IBM Plex Mono';color:#8a929e">10</div></div>
+        <div style="text-align:center"><div style="width:40px;height:40px;background:#f4f6f8;border:1px solid #d9dee4;border-radius:50%"></div><div style="font:400 10px/1.6 'IBM Plex Mono';color:#8a929e">full</div></div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:22px">
+      <div style="font:600 12px/1 'IBM Plex Mono';letter-spacing:.08em;color:#8a929e;margin-bottom:16px">ELEVATION</div>
+      <div style="display:flex;gap:14px;align-items:center;padding-top:4px">
+        <div style="width:44px;height:44px;background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(16,24,40,.06)"></div>
+        <div style="width:44px;height:44px;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(16,24,40,.08)"></div>
+        <div style="width:44px;height:44px;background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.12)"></div>
+      </div>
+      <div style="font:400 11px/1.4 'IBM Plex Mono';color:#8a929e;margin-top:16px">sm · md · lg</div>
+    </div>
+  </div>
+
+  <!-- ===== 05 COMPONENT STATES ===== -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b">05 — CONTROLS</span>
+    <span style="flex:1;height:1px;background:#dde2e8"></span>
+  </div>
+  <h2 style="font:600 24px/1.15 'Space Grotesk';letter-spacing:-.01em;margin:0 0 18px">Buttons &amp; states</h2>
+  <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:26px;margin-bottom:18px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:center">
+      <div style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb"></div>
+      <div style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;text-align:center">default</div>
+      <div style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;text-align:center">hover</div>
+      <div style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;text-align:center">active</div>
+      <div style="font:400 11px/1 'IBM Plex Mono';color:#aab1bb;text-align:center">disabled</div>
+
+      <div style="font:500 13px/1 'IBM Plex Sans';color:#5b6470">Primary</div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#e35d2b;border:none;padding:10px 18px;border-radius:7px;cursor:pointer">Run pipeline</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#c34d20;border:none;padding:10px 18px;border-radius:7px;cursor:pointer;box-shadow:0 2px 8px rgba(227,93,43,.3)">Run pipeline</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#9c3c18;border:none;padding:10px 18px;border-radius:7px;cursor:pointer;transform:translateY(1px)">Run pipeline</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#aab1bb;background:#f1f3f6;border:none;padding:10px 18px;border-radius:7px">Run pipeline</button></div>
+
+      <div style="font:500 13px/1 'IBM Plex Sans';color:#5b6470">Secondary</div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#16181d;background:#fff;border:1px solid #d9dee4;padding:10px 18px;border-radius:7px;cursor:pointer">Preview</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#16181d;background:#f7f9fb;border:1px solid #c2c9d1;padding:10px 18px;border-radius:7px;cursor:pointer">Preview</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#16181d;background:#eef1f4;border:1px solid #c2c9d1;padding:10px 18px;border-radius:7px;cursor:pointer;transform:translateY(1px)">Preview</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#c2c9d1;background:#fff;border:1px solid #eef1f4;padding:10px 18px;border-radius:7px">Preview</button></div>
+
+      <div style="font:500 13px/1 'IBM Plex Sans';color:#5b6470">Ghost</div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#e35d2b;background:transparent;border:none;padding:10px 18px;border-radius:7px;cursor:pointer">Add filter</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#e35d2b;background:#fdf1ea;border:none;padding:10px 18px;border-radius:7px;cursor:pointer">Add filter</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#c34d20;background:#fbe3d6;border:none;padding:10px 18px;border-radius:7px;cursor:pointer;transform:translateY(1px)">Add filter</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#d9b6a6;background:transparent;border:none;padding:10px 18px;border-radius:7px">Add filter</button></div>
+
+      <div style="font:500 13px/1 'IBM Plex Sans';color:#5b6470">Danger</div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#c0392b;background:#fff;border:1px solid #e8bcb6;padding:10px 18px;border-radius:7px;cursor:pointer">Delete</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#c0392b;border:1px solid #c0392b;padding:10px 18px;border-radius:7px;cursor:pointer">Delete</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#9a2d22;border:1px solid #9a2d22;padding:10px 18px;border-radius:7px;cursor:pointer;transform:translateY(1px)">Delete</button></div>
+      <div style="display:flex;justify-content:center"><button style="font:600 13px/1 'IBM Plex Sans';color:#dcb3ae;background:#fff;border:1px solid #f0dcd9;padding:10px 18px;border-radius:7px">Delete</button></div>
+    </div>
+  </div>
+  <div style="font:400 13px/1.5 'IBM Plex Sans';color:#8a929e;margin-bottom:56px">Live hover sample → <button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#e35d2b;border:none;padding:9px 16px;border-radius:7px;cursor:pointer;transition:all .14s ease" style-hover="background:#c34d20;box-shadow:0 2px 10px rgba(227,93,43,.32);transform:translateY(-1px)">Hover me</button></div>
+
+  <!-- ===== 06 WIDGET GALLERY ===== -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <span style="font:600 11px/1 'IBM Plex Mono';letter-spacing:.16em;color:#e35d2b">06 — WIDGET GALLERY</span>
+    <span style="flex:1;height:1px;background:#dde2e8"></span>
+  </div>
+  <h2 style="font:600 24px/1.15 'Space Grotesk';letter-spacing:-.01em;margin:0 0 6px">All 14 widgets, restyled</h2>
+  <p style="font:400 14px/1.6 'IBM Plex Sans';color:#5b6470;margin:0 0 22px;max-width:560px">Six inputs and eight outputs — every component from <span style="font-family:'IBM Plex Mono';font-size:13px">src/widgets/</span> in the new theme.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px">
+
+    <!-- Button -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Button</span><span style="font:500 10px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:4px 7px;border-radius:5px">INPUT</span></div>
+      <div style="display:flex;gap:10px"><button style="font:600 13px/1 'IBM Plex Sans';color:#fff;background:#e35d2b;border:none;padding:10px 16px;border-radius:7px;cursor:pointer">Run</button><button style="font:600 13px/1 'IBM Plex Sans';color:#16181d;background:#fff;border:1px solid #d9dee4;padding:10px 16px;border-radius:7px;cursor:pointer">Cancel</button></div>
+    </div>
+
+    <!-- Checkbox -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Checkbox</span><span style="font:500 10px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:4px 7px;border-radius:5px">INPUT</span></div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer"><span style="width:18px;height:18px;border-radius:5px;background:#e35d2b;display:flex;align-items:center;justify-content:center;flex:none"><span style="color:#fff;font:700 11px/1 'IBM Plex Sans'">✓</span></span><span style="font:400 13px/1 'IBM Plex Sans'">Normalize counts</span></label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer"><span style="width:18px;height:18px;border-radius:5px;background:#fff;border:1.5px solid #cfd5dc;flex:none"></span><span style="font:400 13px/1 'IBM Plex Sans'">Drop low-coverage</span></label>
+      </div>
+    </div>
+
+    <!-- Slider -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Slider</span><span style="font:500 10px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:4px 7px;border-radius:5px">INPUT</span></div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px"><span style="font:400 12px/1 'IBM Plex Sans';color:#5b6470">Mismatch tolerance</span><span style="font:500 12px/1 'IBM Plex Mono';color:#e35d2b">0.04</span></div>
+        <div style="position:relative;height:6px;background:#eef1f4;border-radius:3px">
+          <div style="position:absolute;left:0;top:0;height:6px;width:38%;background:#e35d2b;border-radius:3px"></div>
+          <div style="position:absolute;left:38%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#fff;border:2px solid #e35d2b;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.18)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NumberInput -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">NumberInput</span><span style="font:500 10px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:4px 7px;border-radius:5px">INPUT</span></div>
+      <div>
+        <div style="font:400 12px/1 'IBM Plex Sans';color:#5b6470;margin-bottom:8px">Threads</div>
+        <div style="display:flex;align-items:stretch;border:1px solid #d9dee4;border-radius:7px;overflow:hidden">
+          <input value="16" style="flex:1;border:none;outline:none;font:500 14px/1 'IBM Plex Mono';padding:10px 12px;color:#16181d;min-width:0">
+          <button style="width:34px;border:none;border-left:1px solid #e6eaef;background:#f7f9fb;color:#5b6470;font:400 16px/1 'IBM Plex Sans';cursor:pointer">−</button>
+          <button style="width:34px;border:none;border-left:1px solid #e6eaef;background:#f7f9fb;color:#5b6470;font:400 16px/1 'IBM Plex Sans';cursor:pointer">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Select -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Select</span><span style="font:500 10px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:4px 7px;border-radius:5px">INPUT</span></div>
+      <div>
+        <div style="font:400 12px/1 'IBM Plex Sans';color:#5b6470;margin-bottom:8px">Reference genome</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid #d9dee4;border-radius:7px;padding:10px 12px;cursor:pointer"><span style="font:500 13px/1 'IBM Plex Sans'">GRCh38 / hg38</span><span style="color:#8a929e;font-size:11px">▾</span></div>
+      </div>
+    </div>
+
+    <!-- FileUpload -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">FileUpload</span><span style="font:500 10px/1 'IBM Plex Mono';color:#e35d2b;background:#fdf1ea;padding:4px 7px;border-radius:5px">INPUT</span></div>
+      <div style="border:1.5px dashed #cfd5dc;border-radius:9px;padding:20px;text-align:center;background:#fafbfc">
+        <div style="font:600 13px/1.3 'IBM Plex Sans';color:#16181d">Drop FASTQ files</div>
+        <div style="font:400 12px/1.4 'IBM Plex Sans';color:#8a929e;margin-top:4px">or <span style="color:#e35d2b;font-weight:600">browse</span> · .fastq.gz ≤ 2GB</div>
+      </div>
+    </div>
+
+    <!-- Header (output) -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Header</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div><div style="font:600 22px/1.15 'Space Grotesk';letter-spacing:-.01em">Sample QC</div><div style="font:400 13px/1.4 'IBM Plex Sans';color:#5b6470;margin-top:4px">12 lanes · 3 flowcells</div></div>
+    </div>
+
+    <!-- Text (output) -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Text</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <p style="font:400 13px/1.6 'IBM Plex Sans';color:#31333f;margin:0">Alignment completed for all samples. Mean mapping rate <b style="font-family:'IBM Plex Mono';font-weight:600">97.3%</b>; flagged 2 lanes below threshold.</p>
+    </div>
+
+    <!-- TablePreview -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">TablePreview</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div style="border:1px solid #eef1f4;border-radius:8px;overflow:hidden;font-family:'IBM Plex Mono'">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;background:#f7f9fb;border-bottom:1px solid #eef1f4"><span style="padding:7px 10px;font:600 11px/1.3 'IBM Plex Mono';color:#5b6470">gene</span><span style="padding:7px 10px;font:600 11px/1.3 'IBM Plex Mono';color:#5b6470;text-align:right">log2FC</span><span style="padding:7px 10px;font:600 11px/1.3 'IBM Plex Mono';color:#5b6470;text-align:right">padj</span></div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;border-bottom:1px solid #f3f5f8"><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono'">TP53</span><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono';text-align:right;color:#c0392b">−2.41</span><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono';text-align:right;color:#8a929e">3e-09</span></div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;border-bottom:1px solid #f3f5f8"><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono'">MYC</span><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono';text-align:right;color:#1a8a4f">3.12</span><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono';text-align:right;color:#8a929e">1e-07</span></div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr"><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono'">EGFR</span><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono';text-align:right;color:#1a8a4f">1.88</span><span style="padding:7px 10px;font:400 11px/1.3 'IBM Plex Mono';text-align:right;color:#8a929e">4e-05</span></div>
+      </div>
+    </div>
+
+    <!-- ImagePlot -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">ImagePlot</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div style="height:120px;border-radius:8px;background:repeating-linear-gradient(45deg,#f4f6f8,#f4f6f8 8px,#eef1f4 8px,#eef1f4 16px);border:1px solid #eef1f4;display:flex;align-items:center;justify-content:center"><span style="font:400 11px/1 'IBM Plex Mono';color:#9aa3af;background:#fff;padding:5px 9px;border-radius:5px;border:1px solid #e6eaef">SVG · heatmap</span></div>
+    </div>
+
+    <!-- PlotlyChart -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">PlotlyChart</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div style="height:120px;display:flex;align-items:flex-end;gap:7px;padding:0 2px">
+        <div style="flex:1;height:42%;background:#e35d2b;border-radius:3px 3px 0 0"></div>
+        <div style="flex:1;height:66%;background:#2b7a9e;border-radius:3px 3px 0 0"></div>
+        <div style="flex:1;height:88%;background:#e35d2b;border-radius:3px 3px 0 0"></div>
+        <div style="flex:1;height:54%;background:#2b7a9e;border-radius:3px 3px 0 0"></div>
+        <div style="flex:1;height:73%;background:#e35d2b;border-radius:3px 3px 0 0"></div>
+        <div style="flex:1;height:38%;background:#2b7a9e;border-radius:3px 3px 0 0"></div>
+        <div style="flex:1;height:60%;background:#e35d2b;border-radius:3px 3px 0 0"></div>
+      </div>
+    </div>
+
+    <!-- Gallery -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Gallery</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        <div style="aspect-ratio:1;border-radius:6px;background:repeating-linear-gradient(45deg,#f4f6f8,#f4f6f8 6px,#eef1f4 6px,#eef1f4 12px);border:1px solid #eef1f4"></div>
+        <div style="aspect-ratio:1;border-radius:6px;background:repeating-linear-gradient(45deg,#f4f6f8,#f4f6f8 6px,#eef1f4 6px,#eef1f4 12px);border:1px solid #eef1f4"></div>
+        <div style="aspect-ratio:1;border-radius:6px;background:repeating-linear-gradient(45deg,#f4f6f8,#f4f6f8 6px,#eef1f4 6px,#eef1f4 12px);border:1px solid #eef1f4"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#e35d2b"></span><span style="width:6px;height:6px;border-radius:50%;background:#d9dee4"></span><span style="width:6px;height:6px;border-radius:50%;background:#d9dee4"></span><span style="font:400 11px/1 'IBM Plex Mono';color:#8a929e;margin-left:6px">1 / 9</span></div>
+    </div>
+
+    <!-- Download -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">Download</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div style="display:flex;align-items:center;gap:12px;border:1px solid #e6eaef;border-radius:9px;padding:12px 14px">
+        <span style="width:34px;height:34px;border-radius:7px;background:#fdf1ea;display:flex;align-items:center;justify-content:center;flex:none"><span style="color:#e35d2b;font:700 13px/1 'IBM Plex Mono'">↓</span></span>
+        <div style="flex:1;min-width:0"><div style="font:600 13px/1.2 'IBM Plex Sans';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">deseq2_results.csv</div><div style="font:400 11px/1 'IBM Plex Mono';color:#8a929e;margin-top:3px">142 KB · CSV</div></div>
+        <button style="font:600 12px/1 'IBM Plex Sans';color:#fff;background:#e35d2b;border:none;padding:8px 13px;border-radius:6px;cursor:pointer">Save</button>
+      </div>
+    </div>
+
+    <!-- JobStatus -->
+    <div style="background:#fff;border:1px solid #e6eaef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:600 13px/1 'Space Grotesk'">JobStatus</span><span style="font:500 10px/1 'IBM Plex Mono';color:#2b7a9e;background:#e8f2f7;padding:4px 7px;border-radius:5px">OUTPUT</span></div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="width:7px;height:7px;border-radius:50%;background:#e35d2b;animation:kxpulse 1.4s ease-in-out infinite"></span><span style="font:600 12px/1 'IBM Plex Sans';color:#e35d2b">RUNNING</span><span style="font:400 12px/1 'IBM Plex Mono';color:#8a929e;margin-left:auto">step 3/5</span></div>
+        <div style="height:6px;background:#eef1f4;border-radius:3px;overflow:hidden;margin-bottom:12px"><div style="height:6px;width:62%;background:#e35d2b;border-radius:3px"></div></div>
+        <div style="background:#0f1115;border-radius:7px;padding:10px 12px;font:400 11px/1.6 'IBM Plex Mono'">
+          <div style="color:#6b7480">[14:22:01] <span style="color:#9aa3af">indexing reference…</span></div>
+          <div style="color:#6b7480">[14:22:08] <span style="color:#1a8a4f">✓ index built</span></div>
+          <div style="color:#6b7480">[14:22:09] <span style="color:#f1703c">aligning lane 7…</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:48px;padding-top:24px;border-top:1px solid #dde2e8;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <span style="font:400 12px/1.4 'IBM Plex Mono';color:#8a929e">Tubulin design system · maps to styles.css custom properties</span>
+    <span style="font:400 12px/1.4 'IBM Plex Mono';color:#aab1bb">Source Sans 3 → Space Grotesk / IBM Plex</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

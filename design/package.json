@@ -1,0 +1,17 @@
+{
+  "name": "@tubulin/design",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tubulin design system — dependency-free CSS tokens (light/dark) and a Plotly theme. The whole app restyles by editing these.",
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./plotly-theme.js": "./plotly-theme.js"
+  },
+  "files": [
+    "tokens.css",
+    "plotly-theme.js",
+    "README.md",
+    "mockups"
+  ]
+}

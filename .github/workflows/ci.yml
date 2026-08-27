@@ -1,0 +1,113 @@
+# Roadmap #12: the repo had real coverage across three languages and nothing ran it.
+#
+# Every job here invokes a `make` target rather than repeating its commands. That is
+# not tidiness — CI and the Makefile drifted once already: CI gated on
+# `cargo fmt --all -- --check` while `make lint-all` never ran rustfmt, so a rename
+# that reordered imports passed locally and would have failed CI. A contributor who
+# runs `make lint-all && make test-all` should now be running exactly what CI runs.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: rust (fmt, clippy, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: make lint-rust
+      # Includes the polars-written parquet compatibility test, which reads the
+      # committed fixture under tests/fixtures/.
+      - run: make test-rust
+
+  python:
+    name: python ${{ matrix.python-version }} (pytest + tpp integration)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor and the ceiling of `requires-python = ">=3.10"`. Testing only one
+        # version lets an incompatibility ship to everyone on the other end of the range.
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --group examples --python ${{ matrix.python-version }}
+      - run: make lint-python
+      # tests/ is the framework suite; test_tpp.py runs a real app end-to-end through
+      # the headless harness (same execution core as a worker).
+      - run: make test-python
+
+  frontend:
+    name: frontend (tsc, vitest, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: make lint-frontend
+      - run: make test-frontend
+      - run: make build-frontend
+
+  packaging:
+    name: packaging (wheel + sdist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Packaging used to be exercised only on a `v*` tag, so a broken distribution
+      # could sit on main for months and surface at release time. That is exactly what
+      # happened: the sdist shipped without a frontend and nothing noticed.
+      - run: make wheel
+      - run: make sdist
+
+      - name: both distributions must carry the frontend
+        run: |
+          unzip -l dist/*.whl        | grep -q '_frontend/index.html'
+          tar tzf  dist/*.tar.gz     | grep -q '_frontend/index.html'
+
+      - name: metadata must be valid for PyPI
+        run: uvx twine check dist/*
+
+      # Install the wheel into a clean venv and drive a real app. The sdist gets only
+      # the structural check above here, because building it from source recompiles the
+      # runtime from scratch; release.yml runs the full smoke test on both before publish.
+      - run: make smoke-wheel
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/*
+          retention-days: 7

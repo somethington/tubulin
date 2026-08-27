@@ -1,0 +1,101 @@
+/* ============================================================
+   Tubulin — design tokens
+   Drop into styles.css (or @import it). The whole app restyles
+   by editing these custom properties. Light is the default;
+   dark activates under [data-theme="dark"] on <html> or <body>.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* — Surfaces — */
+  --bg:            #ffffff;   /* content / cards            */
+  --app:           #f7f8fa;   /* page behind content        */
+  --sidebar:       #f4f6f8;
+  --sidebar-hover: #e9edf1;
+  --surface-2:     #f7f9fb;   /* insets, stepper buttons    */
+
+  /* — Text — */
+  --text:   #16181d;
+  --muted:  #5b6470;
+  --faint:  #8a929e;
+
+  /* — Lines — */
+  --border:        #e4e8ec;
+  --border-soft:   #eef1f4;
+  --border-strong: #cfd5dc;
+  --track:         #eef1f4;   /* slider / progress track    */
+
+  /* — Primary (accent) — */
+  --primary:        #e35d2b;
+  --primary-strong: #c34d20;  /* hover / pressed            */
+  --primary-soft:   #fdf1ea;  /* tinted backgrounds         */
+  --primary-contrast: #ffffff;
+
+  /* — Status — */
+  --success: #1a8a4f;
+  --warn:    #c2992b;
+  --error:   #c0392b;
+  --info:    #2563eb;
+
+  /* — Terminals / logs — */
+  --log-bg: #0f1115;
+
+  /* — Type — */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans:    'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+
+  /* — Radius — */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
+  /* — Spacing scale (4px base) — */
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
+  --space-4: 16px;  --space-6: 24px;  --space-8: 32px;  --space-12: 48px;
+
+  /* — Elevation — */
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+  --shadow-md: 0 2px 8px rgba(16,24,40,.08);
+  --shadow-lg: 0 8px 24px rgba(16,24,40,.12);
+
+  /* — Plotly categorical (set in chart config, not CSS) — */
+  --viz-1: #e35d2b;  --viz-2: #2b7a9e;  --viz-3: #7c5cbf;
+  --viz-4: #1a8a4f;  --viz-5: #c2992b;  --viz-6: #6b7280;
+}
+
+[data-theme="dark"] {
+  --bg:            #15181e;
+  --app:           #0f1115;
+  --sidebar:       #12151a;
+  --sidebar-hover: #1c212a;
+  --surface-2:     #1a1e25;
+
+  --text:   #e8ebef;
+  --muted:  #9aa3af;
+  --faint:  #6b7480;
+
+  --border:        #262b33;
+  --border-soft:   #21262e;
+  --border-strong: #39414c;
+  --track:         #262b33;
+
+  --primary:        #f1703c;  /* brightened for AA on dark  */
+  --primary-strong: #ff8454;
+  --primary-soft:   #2a1a12;
+
+  /* The light-mode status colours sit at ~2.7:1 on this background — fine as a
+     border, unreadable as text. Brightened to clear AA for alert copy. */
+  --success: #3fbf78;
+  --warn:    #e0b341;
+  --error:   #f0685a;
+  --info:    #5b9bff;
+
+  --log-bg: #0b0d11;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.45);
+  --shadow-lg: 0 20px 50px rgba(0,0,0,.5);
+}
