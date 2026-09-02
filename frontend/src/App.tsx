@@ -15,6 +15,15 @@ import { PlotlyChart } from "./widgets/PlotlyChart";
 import { Download } from "./widgets/Download";
 import { Gallery } from "./widgets/Gallery";
 
+function mergeProps(node: UiNode, patch: Record<string, any>): UiNode {
+  const { logs_append, ...rest } = patch;
+  const props = { ...node.props, ...rest };
+  if (Array.isArray(logs_append)) {
+    props.logs = [...(props.logs ?? []), ...logs_append];
+  }
+  return { ...node, props };
+}
+
 function Widget({ node, send }: { node: UiNode; send: Send }) {
   switch (node.kind) {
     case "text":
@@ -180,11 +189,7 @@ export function App() {
       setValues(seed);
     } else if (msg.type === "widget_update") {
       setNodes((prev) =>
-        prev.map((n) =>
-          n.id === msg.node_id
-            ? { ...n, props: { ...n.props, ...msg.props } }
-            : n,
-        ),
+        prev.map((n) => (n.id === msg.node_id ? mergeProps(n, msg.props) : n)),
       );
     } else if (msg.type === "error") {
       setError(msg.message);

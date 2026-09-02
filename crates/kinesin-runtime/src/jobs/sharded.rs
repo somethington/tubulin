@@ -42,7 +42,6 @@ pub(super) async fn run(
 
     // Per-shard percents plus the last sent average, updated and sent under one lock.
     let progress = Arc::new(Mutex::new((vec![0u8; shards], usize::MAX)));
-    let logs = Arc::new(Mutex::new(Vec::<String>::new()));
     let announced = Arc::new(AtomicBool::new(false));
 
     let mut handles = Vec::with_capacity(shards);
@@ -55,7 +54,6 @@ pub(super) async fn run(
         let job_def = job_def.clone();
         let args = args.clone();
         let progress = progress.clone();
-        let logs = logs.clone();
         let records = records.clone();
         let announced = announced.clone();
 
@@ -71,8 +69,7 @@ pub(super) async fn run(
                     config.max_workers,
                     std::thread::available_parallelism().map_or(1, |n| n.get()),
                 );
-                let snapshot = append_log(&logs, message);
-                sink.status(json!({ "status": JobStatus::Running.as_str(), "logs": snapshot }));
+                sink.status(json!({ "status": JobStatus::Running.as_str(), "logs": [message] }));
             }
 
             let mut outcome = JobOutcome::default();
@@ -96,11 +93,9 @@ pub(super) async fn run(
                         sink.status(json!({ "progress": avg }));
                     }
                 }
-                // Only the primary shard narrates, to keep the log readable.
                 WorkerMessage::Log { message } => {
                     if shard == 0 {
-                        let snapshot = append_log(&logs, message);
-                        sink.status(json!({ "logs": snapshot }));
+                        sink.status(json!({ "logs_append": [message] }));
                     }
                 }
                 other => outcome.absorb(other),
@@ -127,11 +122,4 @@ pub(super) async fn run(
     }
 
     finish(&config, &sink, &records, &job_id, started, merged).await;
-}
-
-/// Append one line to the shared log and return a snapshot to send.
-fn append_log(logs: &Mutex<Vec<String>>, message: String) -> Vec<String> {
-    let mut all = logs.lock().unwrap();
-    all.push(message);
-    all.clone()
 }

@@ -6,6 +6,8 @@ export interface UiNode {
   props: Record<string, any>;
 }
 
+// widget_update props shallow-merge into the node, with one exception:
+// `logs_append: string[]` appends to the node's `logs` instead of replacing a key.
 export type ServerMessage =
   | { type: "ui_tree"; session_id: string; title: string; nodes: UiNode[] }
   | { type: "widget_update"; node_id: string; props: Record<string, any> }
