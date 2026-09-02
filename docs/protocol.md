@@ -19,13 +19,19 @@ re-exported from `lib.rs`; Python (`python/tubulin/protocol.py`) and the fronten
 // The universal live update: merge `props` into node `node_id`'s props.
 { "type": "widget_update", "node_id": "status_1", "props": { "status": "running" } }
 
+// Append-only exception: add lines to `logs` without resending the history.
+{ "type": "widget_update", "node_id": "status_1", "props": { "logs_append": ["Reading CSV"] } }
+
 // A non-fatal error to surface in the UI.
 { "type": "error", "message": "no value for file_upload_1.path …" }
 ```
 
 `Node` = `{ "id": string, "kind": string, "props": object }`. Every live change —
 status, progress, logs, table previews, plot SVGs, gallery items, download links — is
-a `widget_update` that the frontend shallow-merges into the node's props.
+a `widget_update` that the frontend shallow-merges into the node's props. One key is
+special: `logs_append` is not stored, its lines are appended to the node's `logs` —
+so each worker log line costs one small message instead of a growing resend. The
+`running` update carries a fresh `logs` array, which resets the log between runs.
 
 ### Browser → runtime
 

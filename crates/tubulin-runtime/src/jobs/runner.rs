@@ -61,9 +61,8 @@ pub(super) async fn run(
 
     info!(job = %job_id, "running");
     records.set_status(&job_id, JobStatus::Running);
-    sink.status(json!({ "status": JobStatus::Running.as_str() }));
+    sink.status(json!({ "status": JobStatus::Running.as_str(), "logs": [] }));
 
-    let mut logs: Vec<String> = Vec::new();
     let mut outcome = JobOutcome::default();
     let mut last_progress: Option<u8> = None;
 
@@ -76,8 +75,7 @@ pub(super) async fn run(
     };
     run_worker(&config, &forkservers, job, |msg| match msg {
         WorkerMessage::Log { message } => {
-            logs.push(message);
-            sink.status(json!({ "logs": logs.clone() }));
+            sink.status(json!({ "logs_append": [message] }));
         }
         WorkerMessage::Progress { progress } => {
             if last_progress != Some(progress) {
