@@ -1,10 +1,8 @@
 # Tubulin
 
-**Python-first scientific apps, on a Rust runtime.**
+**Framework for making scientific python apps**
 
-You write one Python file describing a UI and a job. The Rust `tubulin` binary owns
-everything else — the HTTP/WebSocket server, browser sessions, the job queue, and the
-disposable Python worker processes that run your compute.
+The project aims to create a simple framework that will promote more efficient usage of resources without the need of messing with GIL or multi processing in python, which can be problematic when applied in tandem with Streamlit. This is achieved by using a Rust server that handles the creation of disposable python workers with minimal memory duplication (currently only truly supported on Linux). By using **Tubulin**, less experienced developers and scientists can create simple python apps without fiddling with the aforementioned efficiency entry barriers. 
 
 ```python
 # ui.py
@@ -40,35 +38,12 @@ as a banner.
 
 ## Why not just use Streamlit
 
-Streamlit re-runs your whole script on every interaction. That model is excellent for
-dashboards and awkward for the work this is built for: a curve fit over a gigabyte of
-measurements that takes ten minutes and wants every core on the machine.
+# TODO
 
-Tubulin makes a different trade. Your Python file is a **description**, evaluated once
-to produce an app spec; after that there is no Python in the request path. Compute goes
-to a **job** — a separate process the runtime schedules, shards across cores, streams
-progress from, and lets exit so the OS reclaims its memory.
-
-The consequences worth knowing before you pick it up:
-
-- **Large data never lives in session memory.** Sessions reject values over 64 KiB;
-  results live on disk and only ids, paths and small previews cross the wire. A job that
-  loads 8 GB doesn't grow the server.
-- **Workers are disposable** — one process per job, memory reclaimed on exit, never
-  pooled or reused. On Linux an optional fork-server amortizes the heavy import
-  (one `import scipy`, then a fork per job) without keeping any worker alive.
-- **Nothing happens between widgets without a job.** Deriving one widget's options from
-  another's value isn't supported yet — see [the roadmap](docs/roadmap.md). This is the
-  cost of not having a rerun loop, and it is a real limitation, not an oversight.
-- **It is single-tenant by design.** No auth, no fair-share scheduling, in-memory queue.
-  One person's apps on one machine. See
-  [limitations](docs/architecture.md#limitations--what-this-is-not-yet).
 
 ## Install
 
-Not on PyPI yet — the name is secured and the release pipeline builds and smoke-tests
-wheels for Linux and macOS (x86_64 + arm64), but nothing has been published. Until then,
-build a wheel from a checkout:
+# TODO
 
 ```bash
 git clone https://github.com/somethington/tubulin && cd tubulin
@@ -79,8 +54,7 @@ That needs a Rust toolchain and node **once**, to build the wheel. The wheel its
 carries the compiled runtime and the built frontend, so installing it needs neither.
 
 Python 3.10+. Windows is not supported: the worker socket transport is built on Unix
-domain sockets and needs a port, not a matrix entry
-(see [T0.4 in the roadmap](docs/roadmap.md)).
+domain sockets and needs a port
 
 ## How it works
 
@@ -124,16 +98,7 @@ registration pass again and push the new tree.
 
 ## Documentation
 
-| | |
-| --- | --- |
-| [architecture.md](docs/architecture.md) | the whole system, lifecycles, memory model, routes, limitations |
-| [python-api.md](docs/python-api.md) | `App`, every widget, jobs, and the `JobContext` primitives |
-| [parallelism.md](docs/parallelism.md) | parallel jobs, `job.map` / `job.primary`, sharding |
-| [testing.md](docs/testing.md) | the headless harness |
-| [protocol.md](docs/protocol.md) | wire formats and HTTP routes |
-| [runtime-internals.md](docs/runtime-internals.md) | the Rust runtime, module by module |
-| [configuration.md](docs/configuration.md) | `tubulin.toml` and env vars |
-| [roadmap.md](docs/roadmap.md) | what's built, what isn't, and why |
+# TODO
 
 Every widget and container on one runnable page:
 
@@ -158,14 +123,6 @@ cargo run -p tubulin-runtime -- run examples/csv_analysis/ui.py
 suite including the TPP integration test on 3.10 and 3.13, vitest, clippy, ruff, `tsc`,
 and rustfmt. CI invokes these same targets rather than restating them, so if they pass
 locally they pass in CI.
-
-## Status
-
-A working prototype that runs one person's apps well on one machine. The framework
-internals it set out to solve — disposable workers, sharded parallelism, native parquet
-previews, hot reload, a headless harness — are built and tested. What's thinner is the
-surface an app author touches: multipage apps, reactive widgets and interactive tables
-are all still ahead. [docs/roadmap.md](docs/roadmap.md) is honest about both.
 
 ## License
 

@@ -13,6 +13,10 @@ use tokio::sync::Mutex;
 use crate::config::Config;
 
 const READY: &str = "TUBULIN_FORKSERVER_READY";
+/// The parent declined to serve: importing the module started native threads, and a
+/// thread pool created before `fork()` corrupts the child. Not an error — the caller
+/// falls back to per-job worker processes.
+const UNSAFE: &str = "TUBULIN_FORKSERVER_UNSAFE";
 
 struct ForkServer {
     /// Held so the process is killed on drop (`kill_on_drop`); never read otherwise.
@@ -92,10 +96,15 @@ impl ForkServerManager {
         // Wait for the readiness line (import done + socket accepting).
         let stdout = child.stdout.take()?;
         let mut lines = BufReader::new(stdout).lines();
+        let mut declined: Option<String> = None;
         let ready = tokio::time::timeout(Duration::from_secs(60), async {
             while let Ok(Some(line)) = lines.next_line().await {
                 if line.contains(READY) {
                     return true;
+                }
+                if let Some(rest) = line.split_once(UNSAFE) {
+                    declined = Some(rest.1.trim().to_string());
+                    return false;
                 }
             }
             false
@@ -104,7 +113,18 @@ impl ForkServerManager {
         .unwrap_or(false);
 
         if !ready {
-            tracing::warn!(module = %module_file, "fork-server failed to start; falling back to per-job workers");
+            match &declined {
+                // A deliberate decline, not a failure: say so, so nobody goes looking
+                // for a crash that didn't happen.
+                Some(why) => tracing::info!(
+                    module = %module_file,
+                    "fork-server declined ({why}); using per-job workers"
+                ),
+                None => tracing::warn!(
+                    module = %module_file,
+                    "fork-server failed to start; falling back to per-job workers"
+                ),
+            }
             let _ = child.start_kill();
             return None;
         }

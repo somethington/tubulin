@@ -33,6 +33,37 @@ from . import protocol
 from .worker import import_user_module, run_job_descriptor
 
 READY = "TUBULIN_FORKSERVER_READY"
+UNSAFE = "TUBULIN_FORKSERVER_UNSAFE"
+
+
+def _native_thread_count() -> int:
+    """Live OS-thread count for this process — Python threads *and* native pools.
+
+    This is the fork-safety predicate: one thread means nothing has built a pool
+    that a forked child would inherit broken. Counting threads rather than naming
+    libraries is what makes it robust to the next library nobody thought of.
+    Unknown platforms report 1, leaving behaviour as it was before this check.
+    """
+    try:
+        if sys.platform.startswith("linux"):
+            return len(os.listdir(f"/proc/{os.getpid()}/task"))
+        if sys.platform == "darwin":
+            import subprocess
+
+            out = (
+                subprocess.run(
+                    ["ps", "-M", str(os.getpid())],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                .stdout.strip()
+                .splitlines()
+            )
+            return max(1, len(out) - 1)  # minus the header row
+    except Exception:
+        pass
+    return 1
 
 
 def fork_supported() -> bool:
@@ -60,22 +91,29 @@ def serve(module_file: str, socket_path: str) -> None:
     """Import ``module_file`` once, then fork a child per job arriving on the socket."""
     # Must be set before the fork-hostile frameworks import (best-effort on macOS).
     os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
-    # Force native libs single-threaded so there is no background thread pool to
-    # corrupt across fork() (polars/rayon, numpy/OpenBLAS, OpenMP). A forked child
-    # that touches a pool created in the parent segfaults otherwise. Parallelism is
-    # preserved at the *process* level (one child per shard); only intra-process
-    # native threading is disabled, which our per-shard work doesn't need.
-    for var in (
-        "POLARS_MAX_THREADS",
-        "RAYON_NUM_THREADS",
-        "OMP_NUM_THREADS",
-        "OPENBLAS_NUM_THREADS",
-        "MKL_NUM_THREADS",
-        "NUMEXPR_NUM_THREADS",
-    ):
-        os.environ.setdefault(var, "1")
 
     module = import_user_module(module_file)  # the one warm import
+
+    # What actually breaks a forked child is a *native thread pool* created in the
+    # parent — polars/rayon, OpenBLAS, OpenMP, and on macOS Apple's Accelerate.
+    # Capping every such library to one thread via env vars is the obvious fix and
+    # the wrong one twice over: it is a guess at the full list of libraries (the
+    # Accelerate variable was missing, which is why macOS fork looked impossible),
+    # and it permanently costs ~2.2x on dense BLAS to avoid a hazard that usually
+    # isn't present.
+    #
+    # A live thread count measures the hazard directly instead of predicting it.
+    # This parent only *imports* the module — it never runs job code — so normally
+    # nothing has spawned a pool and children inherit a clean, fully threaded
+    # process. If the module did numeric work at import, we see the threads and
+    # decline to serve, and the runtime falls back to spawning fresh workers.
+    threads = _native_thread_count()
+    if threads > 1:
+        sys.stdout.write(
+            f"{UNSAFE} {threads} native threads after importing {module_file}\n"
+        )
+        sys.stdout.flush()
+        return
 
     if os.path.exists(socket_path):
         os.unlink(socket_path)
