@@ -22,7 +22,9 @@ export function deltaDirection(delta: unknown): number {
   // A string delta ("+12", "-3.1%", "2 fewer", "1.2× faster") is signed by its
   // leading number. Match the prefix rather than stripping non-digits: stripping
   // turns "2 fewer" into "2ee" (the e's survive as exponent characters) -> NaN.
-  const text = String(delta).trim().replace(/^\u2212/, "-");
+  const text = String(delta)
+    .trim()
+    .replace(/^\u2212/, "-");
   const [head] = text.match(/^[+-]?\d*\.?\d+/) ?? [];
   if (head === undefined) return 0;
   if (head.startsWith("+")) return 1;
@@ -44,7 +46,10 @@ export function Metric({ node }: WidgetProps) {
     if (!ready) return <div className="kin-metric-value muted">—</div>;
     if (missing)
       return (
-        <div className="kin-metric-value muted" title="the job produced no value">
+        <div
+          className="kin-metric-value muted"
+          title="the job produced no value"
+        >
           —
         </div>
       );

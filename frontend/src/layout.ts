@@ -30,7 +30,8 @@ export interface TreeNode {
 export function buildTree(nodes: UiNode[]): TreeNode[] {
   const roots: TreeNode[] = [];
   const stack: TreeNode[] = [];
-  const current = () => (stack.length ? stack[stack.length - 1].children : roots);
+  const current = () =>
+    stack.length ? stack[stack.length - 1].children : roots;
 
   for (const node of nodes) {
     if (node.kind in CONTAINERS) {

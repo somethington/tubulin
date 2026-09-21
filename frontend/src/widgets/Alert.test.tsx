@@ -32,7 +32,9 @@ describe("Alert", () => {
   });
 
   it("shows a title only when one is given", () => {
-    expect(mount({ level: "info", value: "b" }).find(".kin-alert-title")).toBeNull();
+    expect(
+      mount({ level: "info", value: "b" }).find(".kin-alert-title"),
+    ).toBeNull();
     expect(
       mount({ level: "info", value: "b", title: "Heads up" }).find(
         ".kin-alert-title",
@@ -42,7 +44,9 @@ describe("Alert", () => {
 
   // Errors interrupt; guidance waits its turn.
   it("announces errors assertively and everything else politely", () => {
-    expect(mount({ level: "error", value: "x" }).find('[role="alert"]')).not.toBeNull();
+    expect(
+      mount({ level: "error", value: "x" }).find('[role="alert"]'),
+    ).not.toBeNull();
     expect(
       mount({ level: "info", value: "x" }).find('[aria-live="polite"]'),
     ).not.toBeNull();

@@ -16,19 +16,26 @@ export function Gallery({ node }: WidgetProps) {
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return needle ? items.filter((it) => it.protein.toLowerCase().includes(needle)) : items;
+    return needle
+      ? items.filter((it) => it.protein.toLowerCase().includes(needle))
+      : items;
   }, [items, q]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, pages - 1);
-  const slice = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
+  const slice = filtered.slice(
+    safePage * PER_PAGE,
+    safePage * PER_PAGE + PER_PAGE,
+  );
 
   return (
     <div className="kin-gallery">
       {caption && <div className="kin-caption">{caption}</div>}
       {!ready && <div className="muted small">Waiting for curves…</div>}
       {ready && missing && (
-        <div className="muted small">Not generated — enable the option and re-run.</div>
+        <div className="muted small">
+          Not generated — enable the option and re-run.
+        </div>
       )}
       {ready && error && <div className="kin-table err">{error}</div>}
 

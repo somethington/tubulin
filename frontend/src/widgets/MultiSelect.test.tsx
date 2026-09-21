@@ -21,7 +21,15 @@ describe("MultiSelect", () => {
     const ui = mount({ label: "Conditions", options: OPTIONS, value: ["42C"] });
     expect(ui.labels()).toEqual(OPTIONS);
     expect(ui.boxes().map((b) => (b as HTMLInputElement).checked)).toEqual([
-      false, true, false, false, false, false, false, false, false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
     ]);
   });
 
@@ -55,8 +63,14 @@ describe("MultiSelect", () => {
   });
 
   it("offers a filter only once the list is long", () => {
-    expect(mount({ label: "C", options: ["a", "b"], value: [] }).find(".kin-ms-filter")).toBeNull();
-    expect(mount({ label: "C", options: OPTIONS, value: [] }).find(".kin-ms-filter")).not.toBeNull();
+    expect(
+      mount({ label: "C", options: ["a", "b"], value: [] }).find(
+        ".kin-ms-filter",
+      ),
+    ).toBeNull();
+    expect(
+      mount({ label: "C", options: OPTIONS, value: [] }).find(".kin-ms-filter"),
+    ).not.toBeNull();
   });
 
   it("filters the visible rows and narrows 'select shown' to them", () => {

@@ -68,8 +68,11 @@ body {
 }
 .side-nav a.active::before {
   border-color: var(--primary);
-  background:
-    radial-gradient(circle at center, var(--primary) 0 5px, transparent 5px);
+  background: radial-gradient(
+    circle at center,
+    var(--primary) 0 5px,
+    transparent 5px
+  );
 }
 .side-nav a.active {
   font-weight: 600;

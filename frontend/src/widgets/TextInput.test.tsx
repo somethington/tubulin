@@ -14,7 +14,10 @@ describe("TextInput", () => {
   const mount = (props: Record<string, unknown> = {}) => {
     const { calls, send, last } = recorder();
     const r = render(
-      <TextInput node={node("text_input", { label: "Run label", ...props }) as UiNode} send={send} />,
+      <TextInput
+        node={node("text_input", { label: "Run label", ...props }) as UiNode}
+        send={send}
+      />,
     );
     return { ...r, calls, last, input: () => r.find("input") };
   };
@@ -87,7 +90,10 @@ describe("TextArea", () => {
   const mount = (props: Record<string, unknown> = {}) => {
     const { calls, send, last } = recorder();
     const r = render(
-      <TextArea node={node("text_area", { label: "Notes", ...props }) as UiNode} send={send} />,
+      <TextArea
+        node={node("text_area", { label: "Notes", ...props }) as UiNode}
+        send={send}
+      />,
     );
     return { ...r, calls, last, area: () => r.find("textarea") };
   };

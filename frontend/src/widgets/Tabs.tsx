@@ -18,7 +18,8 @@ export function Tabs({
   render: (items: TreeNode[]) => ReactNode;
 }) {
   const panels = items.filter((c) => c.node.kind === "tab_start");
-  const labels: string[] = node.props.labels ?? panels.map((p) => p.node.props.label);
+  const labels: string[] =
+    node.props.labels ?? panels.map((p) => p.node.props.label);
   const [active, setActive] = useState(0);
 
   return (

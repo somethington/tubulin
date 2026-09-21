@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildTree, partitionSidebar, CONTAINERS, type TreeNode } from "./layout";
+import {
+  buildTree,
+  partitionSidebar,
+  CONTAINERS,
+  type TreeNode,
+} from "./layout";
 import type { UiNode } from "./types";
 
 const n = (kind: string, id = kind): UiNode => ({ id, kind, props: {} });
@@ -7,7 +12,9 @@ const n = (kind: string, id = kind): UiNode => ({ id, kind, props: {} });
 /** Compact "kind(child, child)" rendering of a tree, for readable assertions. */
 const shape = (tree: TreeNode[]): string =>
   tree
-    .map((t) => (t.children.length ? `${t.node.kind}(${shape(t.children)})` : t.node.kind))
+    .map((t) =>
+      t.children.length ? `${t.node.kind}(${shape(t.children)})` : t.node.kind,
+    )
     .join(",");
 
 describe("buildTree", () => {
@@ -62,7 +69,9 @@ describe("buildTree", () => {
 
   // Malformed spans must degrade, never blank the page.
   it("drops a stray closing marker", () => {
-    expect(shape(buildTree([n("group_end"), n("text"), n("tab_end")]))).toBe("text");
+    expect(shape(buildTree([n("group_end"), n("text"), n("tab_end")]))).toBe(
+      "text",
+    );
   });
 
   it("lets an unclosed container run to the end of the list", () => {
@@ -73,9 +82,11 @@ describe("buildTree", () => {
 
   it("ignores a closer that does not match the open container", () => {
     // `tab_end` cannot close a `group_start`, so the group stays open.
-    expect(shape(buildTree([n("group_start"), n("text"), n("tab_end"), n("button")]))).toBe(
-      "group_start(text,button)",
-    );
+    expect(
+      shape(
+        buildTree([n("group_start"), n("text"), n("tab_end"), n("button")]),
+      ),
+    ).toBe("group_start(text,button)");
   });
 
   it("returns nothing for an empty spec", () => {
@@ -116,7 +127,9 @@ describe("partitionSidebar", () => {
   });
 
   it("yields an empty sidebar when the app declares none", () => {
-    const { sidebar, main } = partitionSidebar(buildTree([n("text"), n("button")]));
+    const { sidebar, main } = partitionSidebar(
+      buildTree([n("text"), n("button")]),
+    );
     expect(sidebar).toEqual([]);
     expect(shape(main)).toBe("text,button");
   });

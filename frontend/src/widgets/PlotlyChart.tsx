@@ -12,7 +12,8 @@ export function PlotlyChart({ node }: WidgetProps) {
     if (ref.current && figure?.data) {
       // Apply the Tubulin chart chrome (bg / fonts / grid / colorway) while keeping
       // the figure's own titles, axis labels and ranges.
-      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      const dark =
+        document.documentElement.getAttribute("data-theme") === "dark";
       const theme = tubulinPlotlyLayout(dark ? "dark" : "light");
       const fig = figure.layout ?? {};
       const layout = {
@@ -38,7 +39,9 @@ export function PlotlyChart({ node }: WidgetProps) {
       {caption && <div className="kin-caption">{caption}</div>}
       {!ready && <div className="muted small">Waiting for plot…</div>}
       {ready && missing && (
-        <div className="muted small">Not generated — enable the option and re-run.</div>
+        <div className="muted small">
+          Not generated — enable the option and re-run.
+        </div>
       )}
       {ready && error && <div className="kin-table err">{error}</div>}
       <div

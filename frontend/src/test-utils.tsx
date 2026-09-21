@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 // Tells React that act() is driving updates, so it doesn't warn about them.
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** Mount a component into a detached container and drive it synchronously. */
 export function render(ui: ReactNode) {

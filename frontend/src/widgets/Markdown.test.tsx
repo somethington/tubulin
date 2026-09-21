@@ -27,8 +27,14 @@ describe("links", () => {
   });
 
   it("handles several links in one paragraph", () => {
-    const html = md("[a](https://a.test) [b](https://b.test) [c](https://c.test)");
-    expect(hrefs(html)).toEqual(["https://a.test", "https://b.test", "https://c.test"]);
+    const html = md(
+      "[a](https://a.test) [b](https://b.test) [c](https://c.test)",
+    );
+    expect(hrefs(html)).toEqual([
+      "https://a.test",
+      "https://b.test",
+      "https://c.test",
+    ]);
     expect(html.match(/<a /g)).toHaveLength(3);
   });
 
@@ -46,7 +52,9 @@ describe("links", () => {
     ]);
     expect(hrefs(md("[x](javascript:alert(1))"))).toEqual(["#"]);
     expect(hrefs(md("[x](data:text/html;base64,PHNjcmlwdD4=)"))).toEqual(["#"]);
-    expect(hrefs(md("[x](https://ok.test/a?b=1)"))).toEqual(["https://ok.test/a?b=1"]);
+    expect(hrefs(md("[x](https://ok.test/a?b=1)"))).toEqual([
+      "https://ok.test/a?b=1",
+    ]);
   });
 });
 
