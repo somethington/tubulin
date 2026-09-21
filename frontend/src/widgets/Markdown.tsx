@@ -105,7 +105,8 @@ export function blocks(src: string): ReactNode[] {
     if (fence) {
       const body: string[] = [];
       i++;
-      while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) body.push(lines[i++]);
+      while (i < lines.length && !/^\s*```\s*$/.test(lines[i]))
+        body.push(lines[i++]);
       i++; // closing fence, or EOF
       out.push(
         <pre key={k++} className="kin-md-pre">
@@ -162,7 +163,9 @@ export function blocks(src: string): ReactNode[] {
           item += " " + lines[i++].trim();
         items.push(item);
       }
-      const kids = items.map((t, n) => <li key={n}>{inline(t, `li${k}-${n}`)}</li>);
+      const kids = items.map((t, n) => (
+        <li key={n}>{inline(t, `li${k}-${n}`)}</li>
+      ));
       out.push(
         ordered ? (
           <ol key={k++} className="kin-md-list">

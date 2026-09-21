@@ -169,7 +169,8 @@ export function App() {
   // Current input values, so widgets with `enabled_when` can react to their controller.
   const [values, setValues] = useState<Record<string, any>>({});
   const [theme, setTheme] = useState<"light" | "dark">(
-    () => (localStorage.getItem("tubulin-theme") as "light" | "dark") || "light",
+    () =>
+      (localStorage.getItem("tubulin-theme") as "light" | "dark") || "light",
   );
   const sockRef = useRef<TubulinSocket | null>(null);
 
@@ -190,7 +191,6 @@ export function App() {
     );
     sockRef.current = sock;
     return () => sock.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleMessage(msg: ServerMessage) {

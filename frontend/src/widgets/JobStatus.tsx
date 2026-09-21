@@ -12,7 +12,9 @@ export function JobStatus({ node }: WidgetProps) {
       <div className="status-head">
         <strong>Job status</strong>
         <span className="status-right">
-          {elapsed != null && <span className="elapsed">⏱ {elapsed}s total</span>}
+          {elapsed != null && (
+            <span className="elapsed">⏱ {elapsed}s total</span>
+          )}
           <span className={`pill pill-${status}`}>{status}</span>
         </span>
       </div>

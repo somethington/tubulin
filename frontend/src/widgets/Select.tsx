@@ -3,7 +3,9 @@ import type { WidgetProps } from "../types";
 
 export function Select({ node, send }: WidgetProps) {
   const { label, options } = node.props;
-  const [v, setV] = useState<string>(node.props.value ?? node.props.options?.[0] ?? "");
+  const [v, setV] = useState<string>(
+    node.props.value ?? node.props.options?.[0] ?? "",
+  );
   return (
     <div className="kin-input">
       <label>{label}</label>

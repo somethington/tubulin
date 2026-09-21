@@ -7,7 +7,9 @@ export function ImagePlot({ node }: WidgetProps) {
       {caption && <div className="kin-caption">{caption}</div>}
       {!ready && <div className="muted small">Waiting for plot…</div>}
       {ready && missing && (
-        <div className="muted small">Not generated — enable the option and re-run.</div>
+        <div className="muted small">
+          Not generated — enable the option and re-run.
+        </div>
       )}
       {ready && error && <div className="kin-table err">{error}</div>}
       {ready && svg && (

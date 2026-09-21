@@ -1,4 +1,4 @@
-.PHONY: install wheel sdist stage-frontend build-frontend smoke-wheel smoke-sdist format-rust format-python format-all lint-rust lint-python lint-frontend lint-all test-rust test-python test-frontend test-all check
+.PHONY: install wheel sdist stage-frontend build-frontend smoke-wheel smoke-sdist format-rust format-python format-frontend format-all lint-rust lint-python lint-frontend lint-all test-rust test-python test-frontend test-all audit-rust audit-frontend audit check
 
 PY := .venv/bin/python
 
@@ -42,7 +42,10 @@ format-rust:
 format-python:
 	uvx ruff format python tests examples
 
-format-all: format-rust format-python
+format-frontend:
+	cd frontend && npm run format
+
+format-all: format-rust format-python format-frontend
 
 # ------------- linting ---------------
 # `fmt --check` belongs here, not just in `format-rust`: CI's rust job runs it as a
@@ -55,6 +58,8 @@ lint-python:
 	uvx ruff check --select E9,F python tests examples
 
 lint-frontend:
+	cd frontend && npm run format:check
+	cd frontend && npm run lint
 	cd frontend && npx tsc --noEmit
 
 lint-all: lint-rust lint-python lint-frontend
@@ -70,5 +75,15 @@ test-frontend:
 	cd frontend && npm test
 
 test-all: test-rust test-python test-frontend
+
+# ------------- auditing --------------
+# Dependency advisories; needs `cargo install cargo-audit` locally, CI installs it.
+audit-rust:
+	cargo audit
+
+audit-frontend:
+	cd frontend && npm audit --audit-level=high
+
+audit: audit-rust audit-frontend
 
 check: format-all lint-all

@@ -4,7 +4,9 @@ import { node, render } from "../test-utils";
 import type { UiNode } from "../types";
 
 const mount = (props: Record<string, unknown>) => {
-  const r = render(<Metric node={node("metric", props) as UiNode} send={() => {}} />);
+  const r = render(
+    <Metric node={node("metric", props) as UiNode} send={() => {}} />,
+  );
   return {
     ...r,
     value: () => r.find(".kin-metric-value")?.textContent,
@@ -47,7 +49,9 @@ describe("deltaDirection", () => {
 
 describe("Metric", () => {
   it("renders a static value immediately", () => {
-    expect(mount({ label: "Replicates", value: 3, ready: true }).value()).toBe("3");
+    expect(mount({ label: "Replicates", value: 3, ready: true }).value()).toBe(
+      "3",
+    );
   });
 
   // A bound tile has no number until its job finishes; it must not claim one.
@@ -60,10 +64,12 @@ describe("Metric", () => {
 
   it("marks a delta up or down", () => {
     expect(
-      mount({ label: "n", value: 10, delta: 2, ready: true }).delta()?.className,
+      mount({ label: "n", value: 10, delta: 2, ready: true }).delta()
+        ?.className,
     ).toContain("up");
     expect(
-      mount({ label: "n", value: 10, delta: -2, ready: true }).delta()?.className,
+      mount({ label: "n", value: 10, delta: -2, ready: true }).delta()
+        ?.className,
     ).toContain("down");
   });
 
@@ -105,8 +111,17 @@ describe("Metric", () => {
   });
 
   it("shows a help affordance only when help text is given", () => {
-    expect(mount({ label: "n", value: 1, ready: true }).find(".kin-metric-help")).toBeNull();
-    const ui = mount({ label: "n", value: 1, ready: true, help: "per condition" });
-    expect(ui.find(".kin-metric-label")?.getAttribute("title")).toBe("per condition");
+    expect(
+      mount({ label: "n", value: 1, ready: true }).find(".kin-metric-help"),
+    ).toBeNull();
+    const ui = mount({
+      label: "n",
+      value: 1,
+      ready: true,
+      help: "per condition",
+    });
+    expect(ui.find(".kin-metric-label")?.getAttribute("title")).toBe(
+      "per condition",
+    );
   });
 });

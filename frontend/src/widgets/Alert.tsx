@@ -29,7 +29,11 @@ export function Alert({ node }: WidgetProps) {
   const title = String(node.props.title ?? "");
   const { role, live } = ROLE[level];
   return (
-    <div className={`kin-alert kin-alert-${level}`} role={role} aria-live={live}>
+    <div
+      className={`kin-alert kin-alert-${level}`}
+      role={role}
+      aria-live={live}
+    >
       <span className="kin-alert-icon" aria-hidden>
         {ICON[level]}
       </span>
