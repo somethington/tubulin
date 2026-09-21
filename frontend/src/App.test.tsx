@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { renderTree } from "./App";
+import { mergeProps, renderTree } from "./App";
 import { buildTree, partitionSidebar } from "./layout";
 import { recorder, render } from "../src/test-utils";
 import type { UiNode } from "./types";
 
-const n = (kind: string, id: string, props: Record<string, unknown> = {}): UiNode => ({
+const n = (
+  kind: string,
+  id: string,
+  props: Record<string, unknown> = {},
+): UiNode => ({
   id,
   kind,
   props,
@@ -40,7 +44,9 @@ describe("columns", () => {
 
   it("turns declared widths into fr tracks", () => {
     const grid = mount(spec).find(".kin-columns") as HTMLElement;
-    expect(grid.style.gridTemplateColumns).toBe("minmax(0, 3fr) minmax(0, 2fr)");
+    expect(grid.style.gridTemplateColumns).toBe(
+      "minmax(0, 3fr) minmax(0, 2fr)",
+    );
   });
 
   it("falls back to equal tracks when widths are absent", () => {
@@ -52,7 +58,9 @@ describe("columns", () => {
       n("column_end", "ce2"),
       n("columns_end", "colse"),
     ]).find(".kin-columns") as HTMLElement;
-    expect(grid.style.gridTemplateColumns).toBe("minmax(0, 1fr) minmax(0, 1fr)");
+    expect(grid.style.gridTemplateColumns).toBe(
+      "minmax(0, 1fr) minmax(0, 1fr)",
+    );
   });
 
   it("keeps an empty column as a cell", () => {
@@ -83,14 +91,21 @@ describe("tabs", () => {
 
   it("renders a tab per panel with the first active", () => {
     const ui = mount(spec);
-    expect(ui.all(".kin-tab").map((t) => t.textContent)).toEqual(["Inputs", "Advanced"]);
-    expect(ui.all(".kin-tab.active").map((t) => t.textContent)).toEqual(["Inputs"]);
+    expect(ui.all(".kin-tab").map((t) => t.textContent)).toEqual([
+      "Inputs",
+      "Advanced",
+    ]);
+    expect(ui.all(".kin-tab.active").map((t) => t.textContent)).toEqual([
+      "Inputs",
+    ]);
   });
 
   it("switches the active panel on click", () => {
     const ui = mount(spec);
     ui.click(ui.all(".kin-tab")[1]);
-    expect(ui.all(".kin-tab.active").map((t) => t.textContent)).toEqual(["Advanced"]);
+    expect(ui.all(".kin-tab.active").map((t) => t.textContent)).toEqual([
+      "Advanced",
+    ]);
     expect(ui.all('[role="tabpanel"]').map((p) => p.className)).toEqual([
       "kin-tabpanel hidden",
       "kin-tabpanel",
@@ -116,7 +131,9 @@ describe("group", () => {
     const ui = mount(spec);
     expect(ui.find(".kin-group-body")?.className).toBe("kin-group-body");
     ui.click(ui.find(".kin-group-head"));
-    expect(ui.find(".kin-group-body")?.className).toBe("kin-group-body collapsed");
+    expect(ui.find(".kin-group-body")?.className).toBe(
+      "kin-group-body collapsed",
+    );
     expect(ui.text()).toContain("Override"); // still mounted, just hidden
     ui.click(ui.find(".kin-group-head"));
     expect(ui.find(".kin-group-body")?.className).toBe("kin-group-body");
@@ -162,6 +179,41 @@ describe("enabled_when", () => {
     const ui = mount(spec, { gate: true });
     ui.type(ui.all("input")[1], "9");
     expect(ui.calls.map((c) => c.id)).toEqual(["n1"]);
+  });
+});
+
+describe("mergeProps", () => {
+  const node = () => n("job_status", "s1", { status: "running", logs: ["a"] });
+
+  it("shallow-merges plain props", () => {
+    const out = mergeProps(node(), { status: "completed", progress: 100 });
+    expect(out.props).toEqual({
+      status: "completed",
+      progress: 100,
+      logs: ["a"],
+    });
+  });
+
+  it("appends logs_append to logs without storing the key", () => {
+    const out = mergeProps(node(), { logs_append: ["b", "c"] });
+    expect(out.props.logs).toEqual(["a", "b", "c"]);
+    expect("logs_append" in out.props).toBe(false);
+  });
+
+  it("starts logs from the appended lines when none exist", () => {
+    const out = mergeProps(n("job_status", "s1"), { logs_append: ["first"] });
+    expect(out.props.logs).toEqual(["first"]);
+  });
+
+  it("resets logs when the patch carries a fresh array", () => {
+    const out = mergeProps(node(), { status: "running", logs: [] });
+    expect(out.props.logs).toEqual([]);
+  });
+
+  it("does not mutate the original node", () => {
+    const original = node();
+    mergeProps(original, { logs_append: ["b"] });
+    expect(original.props.logs).toEqual(["a"]);
   });
 });
 

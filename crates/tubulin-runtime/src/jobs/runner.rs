@@ -116,3 +116,47 @@ pub(super) async fn finish(
     info!(job = %job_id, elapsed_s = elapsed, "completed");
     sink.status(json!({ "elapsed_s": elapsed }));
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tubulin_protocol::WorkerResult;
+
+    #[test]
+    fn absorb_completed_captures_result() {
+        let mut outcome = JobOutcome::default();
+        outcome.absorb(WorkerMessage::Completed {
+            result: WorkerResult {
+                path: Some("results/stats.parquet".into()),
+                outputs: HashMap::from([("plot".into(), "results/p.svg".into())]),
+            },
+        });
+        assert_eq!(
+            outcome.result_path.as_deref(),
+            Some("results/stats.parquet")
+        );
+        assert_eq!(outcome.outputs["plot"], "results/p.svg");
+        assert!(outcome.failure.is_none());
+    }
+
+    #[test]
+    fn absorb_failed_captures_error() {
+        let mut outcome = JobOutcome::default();
+        outcome.absorb(WorkerMessage::Failed {
+            error: "boom".into(),
+        });
+        assert_eq!(outcome.failure.as_deref(), Some("boom"));
+    }
+
+    #[test]
+    fn absorb_ignores_stream_messages() {
+        let mut outcome = JobOutcome::default();
+        outcome.absorb(WorkerMessage::Log {
+            message: "line".into(),
+        });
+        outcome.absorb(WorkerMessage::Progress { progress: 50 });
+        assert!(outcome.result_path.is_none());
+        assert!(outcome.outputs.is_empty());
+        assert!(outcome.failure.is_none());
+    }
+}
