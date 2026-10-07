@@ -125,13 +125,57 @@ async fn list_curve_dir(dir: &str) -> std::io::Result<Vec<Value>> {
 
 /// Expose the job's download bundle, built on demand by the `/bundle` route.
 fn send_download(sink: &JobSink, node_id: &str, job_id: &str) {
-    let short = job_id.get(..8).unwrap_or(job_id);
     sink.send_to(
         node_id,
         json!({
             "ready": true,
             "url": format!("/bundle?job={job_id}"),
-            "filename": format!("TPP_results_{short}.zip"),
+            "filename": bundle_filename(&sink.app_title, job_id),
         }),
     );
+}
+
+/// The name the user's browser saves a bundle under: `<App_Title>_results_<id8>.zip`.
+/// The title is reduced to a filename-safe slug; a title with nothing left falls back
+/// to `tubulin`.
+fn bundle_filename(app_title: &str, job_id: &str) -> String {
+    let mut slug = String::new();
+    for c in app_title.chars() {
+        if c.is_alphanumeric() || c == '-' {
+            slug.push(c);
+        } else if !slug.is_empty() && !slug.ends_with('_') {
+            slug.push('_');
+        }
+    }
+    let slug = slug.trim_end_matches('_');
+    let slug = if slug.is_empty() { "tubulin" } else { slug };
+    let short = job_id.get(..8).unwrap_or(job_id);
+    format!("{slug}_results_{short}.zip")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bundle_filename;
+
+    const JOB: &str = "1a2b3c4d-0000-0000-0000-000000000000";
+
+    #[test]
+    fn bundle_is_named_after_the_app() {
+        assert_eq!(
+            bundle_filename("CSV Analyzer", JOB),
+            "CSV_Analyzer_results_1a2b3c4d.zip"
+        );
+    }
+
+    #[test]
+    fn bundle_name_drops_unsafe_characters() {
+        assert_eq!(
+            bundle_filename("  TPP: melt/curves (v2) ", JOB),
+            "TPP_melt_curves_v2_results_1a2b3c4d.zip"
+        );
+        assert_eq!(
+            bundle_filename("../\\\"", JOB),
+            "tubulin_results_1a2b3c4d.zip"
+        );
+    }
 }

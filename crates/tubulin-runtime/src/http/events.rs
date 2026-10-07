@@ -76,7 +76,7 @@ fn run_action(state: &Arc<AppState>, session: &Arc<Session>, action: &ActionSpec
             };
             let job_id = Uuid::new_v4().to_string();
             session.set_slot(result_slot.clone(), job_id.clone());
-            let sink = build_sink(&spec.bindings, result_slot, session);
+            let sink = build_sink(&spec.bindings, result_slot, &spec.title, session);
             if let Err(e) = state.jobs.submit(JobRequest {
                 job_id,
                 job_def,

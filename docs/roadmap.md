@@ -262,7 +262,7 @@ lets people other than the maintainer extend and deploy it.
 - [ ] &nbsp;&nbsp;&nbsp;&nbsp;↳ *publish to PyPI* — needs a PyPI project + the `pypi` repo environment.
       The name `kinesin` was squatted, hence the rename to `tubulin` (see T0.4)
 - [ ] &nbsp;&nbsp;&nbsp;&nbsp;↳ *Windows* — a port, not a matrix row (see T0.4)
-- [ ] &nbsp;&nbsp;&nbsp;&nbsp;↳ *first-run papercuts* — no `--version`, no scaffold, TPP-named zips (T0.5)
+- [x] &nbsp;&nbsp;&nbsp;&nbsp;↳ *first-run papercuts* — `--version`, `tubulin new`, app-named zips (T0.5)
 - [x] **Rich text** — `app.markdown` (T0.1)
 - [x] **Free text input** — `app.text_input`, `app.text_area` (T0.1)
 - [x] **Multiple choice** — `app.multiselect` (T0.1)
@@ -390,10 +390,16 @@ The classifiers name Linux and macOS only, so the exclusion is at least declared
 
 ---
 
-### T0.5 First-run papercuts — still open
+### T0.5 First-run papercuts — ✅ done
+
+All three shipped for 0.1: the bundle is saved as `<App_Title>_results_<id>.zip`
+(`bundle_filename` in `jobs/outputs.rs`), `tubulin --version` / `-V` prints the build,
+and `tubulin new <dir>` writes the starter app from `crates/tubulin-runtime/templates/`
+(kept working by `tests/test_scaffold.py`; `scripts/smoke-dist.sh` checks both commands
+from an installed wheel). The original write-up follows.
 
 T0.4's review closed the packaging gaps and settled the Windows question. Three small
-things are left, all of them things a first-time author meets in their first ten
+things were left, all of them things a first-time author meets in their first ten
 minutes and none of them touching the two hard problems above.
 
 1. **The download bundle is named after the example app.** `send_download` in

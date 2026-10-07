@@ -28,20 +28,30 @@ case "$DIST" in
   *)        "$WORK/venv/bin/pip" install --quiet "$DIST" ;;
 esac
 
+fail() { echo "FAIL: $1"; [ -f "$WORK/app.log" ] && { echo "--- app log ---"; cat "$WORK/app.log"; }; exit 1; }
+
+# The first two commands a new user types. The version must be the one being shipped.
+WANT="$(sed -n 's/^version = "\(.*\)"/\1/p' "$ROOT/pyproject.toml" | head -1)"
+GOT="$("$WORK/venv/bin/tubulin" --version)"
+[ "$GOT" = "tubulin $WANT" ] || fail "--version printed '$GOT', expected 'tubulin $WANT'"
+echo "    $GOT"
+"$WORK/venv/bin/tubulin" new "$WORK/app" > /dev/null
+for f in ui.py tubulin.toml; do
+  [ -f "$WORK/app/$f" ] || fail "tubulin new did not write $f"
+done
+echo "    tubulin new ok"
+
 echo "==> starting an app from outside the repo"
-mkdir -p "$WORK/app"
-cp "$ROOT/examples/widgets/ui.py" "$WORK/app/"
+cp "$ROOT/examples/widgets/ui.py" "$WORK/app/widgets.py"
 cd "$WORK/app"
 env -u TUBULIN_ROOT -u TUBULIN_PYTHON -u TUBULIN_FRONTEND \
-  "$WORK/venv/bin/tubulin" run ui.py --port "$PORT" --no-reload > "$WORK/app.log" 2>&1 &
+  "$WORK/venv/bin/tubulin" run widgets.py --port "$PORT" --no-reload > "$WORK/app.log" 2>&1 &
 APP_PID=$!
 
 for _ in $(seq 1 60); do
   curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && break
   sleep 1
 done
-
-fail() { echo "FAIL: $1"; echo "--- app log ---"; cat "$WORK/app.log"; exit 1; }
 
 curl -sf "http://127.0.0.1:$PORT/health" | grep -q '"status":"ok"' || fail "/health did not report ok"
 echo "    /health ok"
