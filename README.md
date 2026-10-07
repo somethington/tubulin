@@ -38,53 +38,23 @@ as a banner.
 
 ## Why not just use Streamlit
 
-Streamlit is great for a dashboard. It gets hard when the app is a long computation:
-the script reruns on every interaction, it runs in the server's own process, and
-whatever it loads stays in session memory. Making that fast means `multiprocessing`,
-caching decorators and care around the GIL, which is exactly what a scientist writing
-an app shouldn't have to learn.
-
-Tubulin splits the two jobs apart:
-
-- **Jobs run in disposable Python workers.** Each run (or each shard of a parallel run)
-  gets its own process, which exits when it is done, so its memory goes with it. On
-  Linux the workers fork from a warm interpreter, so the heavy imports are paid once.
-- **Large data never sits in the session.** Uploads and results live on disk; the
-  browser gets a 100-row preview, a plot, or a download link. A session refuses any
-  value over 64 KiB.
-- **Interactions don't rerun your script.** `ui.py` is read once to describe the app.
-  Button clicks, previews and downloads are handled by the Rust runtime, with no Python
-  in the request path.
-- **Parallelism is a flag.** `@app.job(parallel=True)` with `job.map(...)` fans out
-  across the machine's cores; the runtime picks the shard count and merges the results.
-
-The trade-off: Tubulin is younger and smaller, and for now it serves one user's app on
-one machine (no auth, no multi-tenant scheduling). If your app is mostly charts over
-data that fits in memory, Streamlit is the better fit today.
+# TODO
 
 
 ## Install
 
-```bash
-pip install tubulin
-tubulin new my_app        # writes a runnable ui.py and tubulin.toml
-cd my_app && tubulin run ui.py
-```
-
-Wheels are published for Linux (x86_64, aarch64) and macOS (Intel, Apple silicon) and
-carry the compiled runtime and the built frontend, so installing needs neither a Rust
-toolchain nor node. Python 3.10+. `tubulin --version` prints the installed build.
-
-Windows is not supported yet: the worker transport is built on Unix domain sockets and
-needs a port. On another platform pip falls back to the source distribution, which
-needs a Rust toolchain to compile the runtime.
-
-To build the wheel yourself from a checkout (needs Rust and node once):
+# TODO
 
 ```bash
 git clone https://github.com/somethington/tubulin && cd tubulin
 make wheel && pip install dist/tubulin-*.whl
 ```
+
+That needs a Rust toolchain and node **once**, to build the wheel. The wheel itself
+carries the compiled runtime and the built frontend, so installing it needs neither.
+
+Python 3.10+. Windows is not supported: the worker socket transport is built on Unix
+domain sockets and needs a port
 
 ## How it works
 
@@ -128,27 +98,16 @@ registration pass again and push the new tree.
 
 ## Documentation
 
-The full docs live in [`docs/`](https://github.com/somethington/tubulin/blob/main/docs/README.md):
+# TODO
 
-- [Architecture](https://github.com/somethington/tubulin/blob/main/docs/architecture.md) — how the runtime, workers and frontend fit
-  together, and the current limitations. Start here.
-- [Python API](https://github.com/somethington/tubulin/blob/main/docs/python-api.md) — `App`, every widget and container, and the
-  job primitives.
-- [Parallelism](https://github.com/somethington/tubulin/blob/main/docs/parallelism.md) — `job.map` / `job.primary` and how workers
-  are allocated.
-- [Testing](https://github.com/somethington/tubulin/blob/main/docs/testing.md) — the headless `tubulin.testing` harness.
-- [Configuration](https://github.com/somethington/tubulin/blob/main/docs/configuration.md) — `tubulin.toml`, environment variables
-  and the CLI.
-- [Roadmap](https://github.com/somethington/tubulin/blob/main/docs/roadmap.md) — what's next.
-
-Every widget and container on one runnable page, from a checkout of this repository:
+Every widget and container on one runnable page:
 
 ```bash
 tubulin run examples/widgets/ui.py
 ```
 
 A real adapted application — Thermal Proteome Profiling, fitting and plotting hundreds
-of melting curves in parallel — lives in [examples/tpp](https://github.com/somethington/tubulin/blob/main/examples/tpp/README.md).
+of melting curves in parallel — lives in [examples/tpp](examples/tpp/README.md).
 
 ## Development
 
