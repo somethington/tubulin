@@ -38,12 +38,11 @@ as a banner.
 
 ## Why not just use Streamlit
 
-# TODO
-
+Streamlit is a great tool for giving scripts an interactive webui, however, when it comes to longer and heavier computation or scalability, there are some hurdles, such as script reruns, or how long data is loaded in memory. Tubulin aims to introduce that same simplicity with better memory management and scalability in mind. Each job runs its own shor-lived python worker that frees memory when it finishes, large data is written to disk and sent to browser when needed, and parallel jobs spread between cores with a single flag. 
 
 ## Install
 
-# TODO
+pip install tubulin or build from source if your platform is not supported 
 
 ```bash
 git clone https://github.com/somethington/tubulin && cd tubulin
