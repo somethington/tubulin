@@ -23,6 +23,8 @@ pub struct JobSink {
     pub status_nodes: Vec<String>,
     /// Bound output nodes paired with their view ("result_preview", "plot:<name>", ...).
     pub result_nodes: Vec<(String, String)>,
+    /// The app's title, which names the download bundle the user saves.
+    pub app_title: String,
 }
 
 impl JobSink {

@@ -23,9 +23,11 @@ pub fn resolve_args(args: &[ArgSpec], session: &Session) -> Result<Vec<Value>, S
 }
 
 /// Build the sink of widgets a job drives, by scanning bindings for `result_slot`.
+/// `app_title` names the files the job hands back to the user (its download bundle).
 pub fn build_sink(
     bindings: &HashMap<String, Binding>,
     result_slot: &str,
+    app_title: &str,
     session: &Arc<Session>,
 ) -> JobSink {
     let mut status_nodes = Vec::new();
@@ -44,6 +46,7 @@ pub fn build_sink(
         tx: session.tx.clone(),
         status_nodes,
         result_nodes,
+        app_title: app_title.to_string(),
     }
 }
 
@@ -110,7 +113,7 @@ mod tests {
                 view: "status".into(),
             },
         );
-        let sink = build_sink(&bindings, "slot_1", &session);
+        let sink = build_sink(&bindings, "slot_1", "Test App", &session);
         assert_eq!(sink.status_nodes, vec!["status_1".to_string()]);
         assert_eq!(
             sink.result_nodes,

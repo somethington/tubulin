@@ -5,6 +5,7 @@ mod http;
 mod jobs;
 mod registry;
 mod reload;
+mod scaffold;
 mod session;
 mod state;
 mod workers;
@@ -37,6 +38,11 @@ async fn main() {
 
     let result = match command {
         Command::Run(args) => run(args).await,
+        Command::New(dir) => new(&dir),
+        Command::Version => {
+            println!("{}", cli::VERSION);
+            Ok(())
+        }
     };
 
     if let Err(e) = result {
@@ -44,6 +50,14 @@ async fn main() {
         eprintln!("error: {e:#}");
         std::process::exit(1);
     }
+}
+
+fn new(dir: &std::path::Path) -> anyhow::Result<()> {
+    for path in scaffold::new_app(dir)? {
+        println!("  created {}", path.display());
+    }
+    println!("\nNext:\n  cd {}\n  tubulin run ui.py", dir.display());
+    Ok(())
 }
 
 async fn run(args: RunArgs) -> anyhow::Result<()> {

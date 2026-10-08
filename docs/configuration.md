@@ -51,7 +51,14 @@ and the user's module knows which pass it is running under.
 
 ```
 tubulin run <ui.py> [--port <PORT>] [--config <FILE>] [--no-reload]
+tubulin new <dir>
+tubulin --version
 ```
+
+`tubulin new <dir>` writes a runnable starter app into `<dir>` (created if missing): a
+`ui.py` with a slider, a job and a result table, this `tubulin.toml`, and a `.gitignore`
+for `storage/`. It refuses to overwrite any file that already exists. `tubulin --version`
+(or `-V`) prints the build's version, the first thing to include in a bug report.
 
 `tubulin run` **watches the app's `.py` files and re-registers on save** — edit `ui.py`
 (or a sibling module like `compute.py`), and every open browser gets the new UI tree

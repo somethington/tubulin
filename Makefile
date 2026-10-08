@@ -40,7 +40,7 @@ format-rust:
 	cargo fmt
 
 format-python:
-	uvx ruff format python tests examples
+	uvx ruff format python tests examples crates/tubulin-runtime/templates
 
 format-frontend:
 	cd frontend && npm run format
@@ -55,7 +55,7 @@ lint-rust:
 	cargo clippy --all-targets -- -D warnings
 
 lint-python:
-	uvx ruff check --select E9,F python tests examples
+	uvx ruff check --select E9,F python tests examples crates/tubulin-runtime/templates
 
 lint-frontend:
 	cd frontend && npm run format:check

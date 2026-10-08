@@ -9,7 +9,8 @@ the runtime.
 | Module | Responsibility |
 | --- | --- |
 | `main.rs` | entry; tracing init; parse CLI; load config; register; serve |
-| `cli.rs` | hand-rolled arg parser for `run <ui.py> [--port] [--config]` |
+| `cli.rs` | hand-rolled arg parser for `run <ui.py> [--port] [--config] [--no-reload]`, `new <dir>`, `--version` |
+| `scaffold.rs` | `tubulin new`: writes the starter app compiled in from `templates/` (`ui.py`, `tubulin.toml`, `.gitignore`); refuses to overwrite |
 | `config/` | `mod.rs` loads `tubulin.toml` + defaults (canonicalized project root, Python interpreter, `max_workers` 0 = auto-cores); `raw.rs` is the on-disk TOML shape |
 | `registry.rs` | spawn `python -m tubulin.register`, parse the `AppSpec` |
 | `state.rs` | `AppState { config, spec, jobs, sessions }` shared via `Arc` |

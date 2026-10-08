@@ -254,7 +254,7 @@ or `job.map(into=name)`).
 | `app.image(job, name, caption="")` | an inline SVG the job wrote |
 | `app.plot(job, name, caption="")` | an interactive **Plotly** chart (figure JSON) |
 | `app.gallery(job, name, caption="")` | a paginated, searchable image gallery |
-| `app.download(job, name, label="Download")` | a button that downloads the job's `.zip` |
+| `app.download(job, name, label="Download")` | a button that downloads the job's `.zip`, saved as `<App_Title>_results_<id>.zip` |
 
 ```python
 app.job_status(job)
