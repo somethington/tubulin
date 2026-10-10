@@ -108,7 +108,6 @@ The full docs live in [`docs/`](https://github.com/somethington/tubulin/blob/mai
 - [Testing](https://github.com/somethington/tubulin/blob/main/docs/testing.md): the headless `tubulin.testing` harness.
 - [Configuration](https://github.com/somethington/tubulin/blob/main/docs/configuration.md): `tubulin.toml`, environment variables and
   the CLI.
-- [Roadmap](https://github.com/somethington/tubulin/blob/main/docs/roadmap.md): what's next.
 
 Every widget and container on one runnable page, from a checkout of this repository:
 
