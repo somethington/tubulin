@@ -97,16 +97,26 @@ registration pass again and push the new tree.
 
 ## Documentation
 
-# TODO
+The full docs live in [`docs/`](https://github.com/somethington/tubulin/blob/main/docs/README.md):
 
-Every widget and container on one runnable page:
+- [Architecture](https://github.com/somethington/tubulin/blob/main/docs/architecture.md): how the runtime, workers and frontend fit
+  together, and the current limitations. Start here.
+- [Python API](https://github.com/somethington/tubulin/blob/main/docs/python-api.md): `App`, every widget and container, and the job
+  primitives.
+- [Parallelism](https://github.com/somethington/tubulin/blob/main/docs/parallelism.md): `job.map` / `job.primary` and how workers are
+  allocated.
+- [Testing](https://github.com/somethington/tubulin/blob/main/docs/testing.md): the headless `tubulin.testing` harness.
+- [Configuration](https://github.com/somethington/tubulin/blob/main/docs/configuration.md): `tubulin.toml`, environment variables and
+  the CLI.
+
+Every widget and container on one runnable page, from a checkout of this repository:
 
 ```bash
 tubulin run examples/widgets/ui.py
 ```
 
 A real adapted application — Thermal Proteome Profiling, fitting and plotting hundreds
-of melting curves in parallel — lives in [examples/tpp](examples/tpp/README.md).
+of melting curves in parallel — lives in [examples/tpp](https://github.com/somethington/tubulin/blob/main/examples/tpp/README.md).
 
 ## Development
 
